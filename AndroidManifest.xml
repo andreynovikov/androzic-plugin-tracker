@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.androzic.plugin.tracker"
+    android:versionCode="1"
+    android:versionName="1.0" >
+
+    <uses-sdk
+        android:minSdkVersion="7"
+        android:targetSdkVersion="11" />
+
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="com.androzic.permission.RECEIVE_LOCATION" />
+    <uses-permission android:name="com.androzic.permission.READ_PREFERENCES" />
+    <uses-permission android:name="com.androzic.permission.READ_MAP_DATA" />
+    <uses-permission android:name="com.androzic.permission.WRITE_MAP_DATA" />
+
+    <application
+        android:allowBackup="false"
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/app_name" >
+        <activity
+            android:name=".TrackerList"
+            android:label="@string/pref_tracker_title" >
+            <intent-filter>
+                <action android:name="com.androzic.plugins.view" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".Preferences"
+            android:label="@string/pref_tracker_title" >
+            <intent-filter>
+                <action android:name="com.androzic.plugins.preferences" />
+            </intent-filter>
+        </activity>
+
+        <receiver android:name=".Executor" >
+            <intent-filter>
+                <action android:name="com.androzic.plugins.action.INITIALIZE" />
+                <action android:name="com.androzic.plugins.action.FINALIZE" />
+            </intent-filter>
+        </receiver>
+        <receiver
+            android:name=".SMSReceiver" >
+            <intent-filter android:priority="100">
+                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+            </intent-filter>
+        </receiver>
+    </application>
+
+</manifest>
