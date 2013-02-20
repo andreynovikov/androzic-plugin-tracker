@@ -40,6 +40,8 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import com.androzic.data.Tracker;
+import com.androzic.location.ILocationRemoteService;
+import com.androzic.util.StringFormatter;
 
 public class TrackerList extends ListActivity implements OnSharedPreferenceChangeListener
 {
@@ -47,6 +49,8 @@ public class TrackerList extends ListActivity implements OnSharedPreferenceChang
 	private TrackerDataAccess dataAccess;
 	
 	private TrackerListAdapter adapter;
+
+	private ILocationRemoteService locationService = null;
 
 	@Override
 	public void onCreate(final Bundle savedInstanceState)
@@ -151,12 +155,14 @@ public class TrackerList extends ListActivity implements OnSharedPreferenceChang
 		@Override
 		public void bindView(View view, Context context, Cursor cursor)
 		{
-			String title = cursor.getString(cursor.getColumnIndex(TrackerDataAccess.TITLE));
-			String imei = cursor.getString(cursor.getColumnIndex(TrackerDataAccess.IMEI));
+			Tracker tracker = dataAccess.getTracker(cursor);
 		    TextView t = (TextView) view.findViewById(R.id.name);
-		    t.setText(title);
+		    t.setText(tracker.name);
 		    t = (TextView) view.findViewById(R.id.imei);
-		    t.setText(imei);
+		    t.setText(tracker.imei);
+			String coordinates = StringFormatter.coordinates(0, " ", tracker.latitude, tracker.longitude);
+		    t = (TextView) view.findViewById(R.id.coordinates);
+		    t.setText(coordinates);
 		}
 		 
 		@Override

@@ -27,6 +27,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.RemoteException;
 import android.telephony.SmsMessage;
 import android.util.Log;
 
@@ -77,7 +78,6 @@ public class SMSReceiver extends BroadcastReceiver
 				//tracker.battery = m.group(5);
 				//tracker.signal = m.group(6);
 				tracker.imei = m.group(7);
-				tracker.name = tracker.imei + tracker.imei;
 
 				double coords[] = CoordinateParser.parse(latitude + " " + longitude);
 				if (Double.isNaN(coords[0]) || Double.isNaN(coords[1]))
@@ -96,6 +96,16 @@ public class SMSReceiver extends BroadcastReceiver
 			TrackerDataAccess dataAccess = new TrackerDataAccess(context);
 			dataAccess.saveTracker(tracker);
 			dataAccess.close();
+			try
+			{
+				Application application = Application.getApplication();
+				application.sendMapObject(tracker);
+			}
+			catch (RemoteException e)
+			{
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			abortBroadcast();
 		}
 	}
