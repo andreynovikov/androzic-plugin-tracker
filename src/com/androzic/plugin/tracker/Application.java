@@ -23,16 +23,16 @@ package com.androzic.plugin.tracker;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.androzic.BaseApplication;
-import com.androzic.data.Tracker;
-import com.androzic.provider.DataContract;
-
 import android.content.ContentProviderClient;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.RemoteException;
+
+import com.androzic.BaseApplication;
+import com.androzic.data.Tracker;
+import com.androzic.provider.DataContract;
 
 public class Application extends BaseApplication
 {
@@ -82,11 +82,12 @@ public class Application extends BaseApplication
 				dataAccess.close();
 				return;
 			}
-			while (cursor.moveToNext())
+			do
 			{
 				Tracker tracker = dataAccess.getTracker(cursor);
 				sendMapObject(tracker);
 			}
+			while (cursor.moveToNext());
 			dataAccess.close();
 		}
 	}

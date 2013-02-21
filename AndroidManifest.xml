@@ -15,6 +15,7 @@
     <uses-permission android:name="com.androzic.permission.WRITE_MAP_DATA" />
 
     <application
+        android:name=".Application"
         android:allowBackup="false"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name" >
