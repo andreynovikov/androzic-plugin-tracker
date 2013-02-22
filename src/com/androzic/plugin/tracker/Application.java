@@ -26,9 +26,12 @@ import java.util.Map;
 import android.content.ContentProviderClient;
 import android.content.ContentUris;
 import android.content.ContentValues;
+import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.RemoteException;
+import android.preference.PreferenceManager;
 
 import com.androzic.BaseApplication;
 import com.androzic.data.Tracker;
@@ -37,6 +40,8 @@ import com.androzic.provider.DataContract;
 public class Application extends BaseApplication
 {
 	private Map<String, Long> mapObjectIds = new HashMap<String, Long>();
+	
+	int markerColor = Color.BLUE;
 
 	/**
 	 * Sends tracker to Androzic map
@@ -49,6 +54,7 @@ public class Application extends BaseApplication
 		values.put(DataContract.MAPOBJECT_COLUMNS[DataContract.MAPOBJECT_LATITUDE_COLUMN], tracker.latitude);
 		values.put(DataContract.MAPOBJECT_COLUMNS[DataContract.MAPOBJECT_LONGITUDE_COLUMN], tracker.longitude);
 		values.put(DataContract.MAPOBJECT_COLUMNS[DataContract.MAPOBJECT_NAME_COLUMN], tracker.name);
+		values.put(DataContract.MAPOBJECT_COLUMNS[DataContract.MAPOBJECT_BACKCOLOR_COLUMN], markerColor);
 		synchronized (mapObjectIds)
 		{
 			Long id = mapObjectIds.get(tracker.imei);
@@ -144,5 +150,7 @@ public class Application extends BaseApplication
 	{
 		super.onCreate();
 		setInstance(this);
+		SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+		markerColor = sharedPreferences.getInt(getString(R.string.pref_tracker_markercolor), getResources().getColor(R.color.marker));
 	}
 }
