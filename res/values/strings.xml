@@ -2,6 +2,10 @@
 <resources>
 
     <string name="app_name">Androzic Tracker Plugin</string>
+    <string name="battery">Battery</string>
+    <string name="signal">Signal</string>
+    <string name="full">Full</string>
+    <string name="low">Low</string>
     <string name="msg_empty_list">Nothing to display</string>
     <string name="menu_preferences">Settings</string>
     <string name="pref_settings_title">Settings</string>

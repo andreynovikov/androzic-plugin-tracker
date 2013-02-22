@@ -20,11 +20,21 @@
 
 package com.androzic.data;
 
-public class Tracker extends Waypoint
+public class Tracker extends MapObject
 {
+	public static final int LEVEL_UNKNOWN = -1;
+	public static final int LEVEL_LOW = Integer.MIN_VALUE;
+	public static final int LEVEL_FULL = Integer.MAX_VALUE;
+	
 	public double speed;
-	public long time;
+	public long modified;
+	/**
+	 * Tracker battery level: LEVEL_UNKNOWN, LEVEL_LOW, LEVEL_FULL, 0-100 - percent
+	 */
 	public int battery;
+	/**
+	 * Tracker signal level: LEVEL_UNKNOWN, LEVEL_LOW, LEVEL_FULL, 0-100 - percent
+	 */
 	public int signal;
 	public String imei;
 
@@ -32,8 +42,8 @@ public class Tracker extends Waypoint
 	{
 		super();
 		speed = 0;
-		time = 0;
-		battery = 0;
-		signal = 0;
+		modified = 0;
+		battery = LEVEL_UNKNOWN;
+		signal = LEVEL_UNKNOWN;
 	}
 }

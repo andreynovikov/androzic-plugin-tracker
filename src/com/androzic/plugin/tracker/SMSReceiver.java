@@ -1,28 +1,31 @@
 /*
  * Androzic - android navigation client that uses OziExplorer maps (ozf2, ozfx3).
- * Copyright (C) 2010-2013  Andrey Novikov <http://andreynovikov.info/>
- *
+ * Copyright (C) 2010-2013 Andrey Novikov <http://andreynovikov.info/>
+ * 
  * This file is part of Androzic application.
- *
+ * 
  * Androzic is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
-
+ * 
  * Androzic is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
-
+ * 
  * You should have received a copy of the GNU General Public License
- * along with Androzic.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Androzic. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package com.androzic.plugin.tracker;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -37,12 +40,15 @@ import com.androzic.util.CoordinateParser;
 public class SMSReceiver extends BroadcastReceiver
 {
 	private static final String TAG = "SMSReceiver";
-	
+
+	@SuppressLint("SimpleDateFormat")
+	private static final SimpleDateFormat XexunDateFormatter = new SimpleDateFormat("dd/MM/yy HH:mm");
+
 	@Override
 	public void onReceive(Context context, Intent intent)
 	{
 		Log.e(TAG, "SMS received");
-		
+
 		Bundle extras = intent.getExtras();
 		if (extras == null)
 			return;
@@ -58,7 +64,7 @@ public class SMSReceiver extends BroadcastReceiver
 				continue;
 
 			Log.e(TAG, "SMS: " + text);
-			
+
 			// Xexun TK102/TK103
 			// lat:55.950468 long:035.867116 speed: 000.0 24/11/12 08:54 bat:F signal:F imei:358948010446647
 			Pattern pattern = Pattern.compile("lat:(\\d+\\.\\d+) long:(\\d+\\.\\d+) speed:\\s?([\\d\\.]+) ([\\d/: ]+) bat:(.+) signal:(.+) imei:(\\d+)");
@@ -69,26 +75,43 @@ public class SMSReceiver extends BroadcastReceiver
 				String longitude = m.group(2);
 				try
 				{
-					tracker.speed = Double.parseDouble(m.group(3));
+					tracker.speed = Double.parseDouble(m.group(3)) / 3.6;
 				}
 				catch (NumberFormatException ignore)
 				{
 				}
-				//tracker.time = m.group(4);
-				//tracker.battery = m.group(5);
-				//tracker.signal = m.group(6);
+
+				String time = m.group(4);
+				try
+				{
+					Date date = XexunDateFormatter.parse(time);
+					tracker.modified = date.getTime();
+				}
+				catch (Exception e)
+				{
+					Log.e(TAG, "Date error", e);
+				}
+
+				String battery = m.group(5);
+				if ("F".equals(battery))
+					tracker.battery = Tracker.LEVEL_FULL;
+				if ("L".equals(battery))
+					tracker.battery = Tracker.LEVEL_LOW;
+
+				String signal = m.group(6);
+				if ("F".equals(signal))
+					tracker.signal = Tracker.LEVEL_FULL;
+				if ("L".equals(signal))
+					tracker.signal = Tracker.LEVEL_LOW;
+
 				tracker.imei = m.group(7);
 
 				double coords[] = CoordinateParser.parse(latitude + " " + longitude);
 				if (Double.isNaN(coords[0]) || Double.isNaN(coords[1]))
 					continue;
-				
+
 				tracker.latitude = coords[0];
 				tracker.longitude = coords[1];
-				
-				Log.w(TAG, "IMEI: " + tracker.imei);
-				Log.w(TAG, "LAT: " + tracker.latitude);
-				Log.w(TAG, "LON: " + tracker.longitude);
 			}
 		}
 		if (tracker.imei != null)

@@ -61,27 +61,48 @@ class TrackerDataAccess extends SQLiteOpenHelper
 	/**
 	 * Latitude
 	 * <P>
-	 * Type: FLOAT
+	 * Type: DOUBLE
 	 * </P>
 	 */
 	public static final String LATITUDE = "latitude";
 	/**
-	 * LONGITUDE
+	 * Longitude
 	 * <P>
-	 * Type: FLOAT
+	 * Type: DOUBLE
 	 * </P>
 	 */
 	public static final String LONGITUDE = "longitude";
 	/**
-	 * The timestamp for when the note was last modified
+	 * Speed
 	 * <P>
-	 * Type: INTEGER (long from System.curentTimeMillis())
+	 * Type: FLOAT
 	 * </P>
 	 */
-	public static final String MODIFIED_DATE = "modified";
+	public static final String SPEED = "speed";
+	/**
+	 * Battery level
+	 * <P>
+	 * Type: INTEGER
+	 * </P>
+	 */
+	public static final String BATTERY = "battery";
+	/**
+	 * Signal level
+	 * <P>
+	 * Type: INTEGER
+	 * </P>
+	 */
+	public static final String SIGNAL = "signal";
+	/**
+	 * The timestamp for when the note was last modified
+	 * <P>
+	 * Type: LONG (long from System.curentTimeMillis())
+	 * </P>
+	 */
+	public static final String MODIFIED = "modified";
 
 	private static final String[] columnsId = new String[] { _ID };
-	private static final String[] columnsAll = new String[] { _ID, TITLE, IMEI, LATITUDE, LONGITUDE, MODIFIED_DATE };
+	private static final String[] columnsAll = new String[] { _ID, TITLE, IMEI, LATITUDE, LONGITUDE, SPEED, BATTERY, SIGNAL, MODIFIED };
 
 	TrackerDataAccess(Context context)
 	{
@@ -90,8 +111,8 @@ class TrackerDataAccess extends SQLiteOpenHelper
 
 	public long saveTracker(Tracker tracker)
 	{
-		if (tracker.time == 0)
-			tracker.time = System.currentTimeMillis();
+		if (tracker.modified == 0)
+			tracker.modified = System.currentTimeMillis();
 
 		SQLiteDatabase db = getWritableDatabase();
 
@@ -100,7 +121,10 @@ class TrackerDataAccess extends SQLiteOpenHelper
 		values.put(IMEI, tracker.imei);
 		values.put(LATITUDE, tracker.latitude);
 		values.put(LONGITUDE, tracker.longitude);
-		values.put(MODIFIED_DATE, Long.valueOf(tracker.time));
+		values.put(SPEED, tracker.speed);
+		values.put(BATTERY, tracker.battery);
+		values.put(SIGNAL, tracker.signal);
+		values.put(MODIFIED, Long.valueOf(tracker.modified));
 
 		long id;
 
@@ -114,6 +138,11 @@ class TrackerDataAccess extends SQLiteOpenHelper
 		}
 		else
 		{
+			if ("".equals(tracker.name))
+			{
+				tracker.name = tracker.imei;
+				values.put(TITLE, tracker.name);
+			}
 			id = db.insert(TrackerDataAccess.TABLE_NAME, null, values);
 		}
 		tracker._id = id;
@@ -126,9 +155,12 @@ class TrackerDataAccess extends SQLiteOpenHelper
 		tracker._id = cursor.getLong(cursor.getColumnIndex(_ID));
 		tracker.latitude = cursor.getDouble(cursor.getColumnIndex(LATITUDE));
 		tracker.longitude = cursor.getDouble(cursor.getColumnIndex(LONGITUDE));
+		tracker.speed = cursor.getFloat(cursor.getColumnIndex(SPEED));
+		tracker.battery = cursor.getInt(cursor.getColumnIndex(BATTERY));
+		tracker.signal = cursor.getInt(cursor.getColumnIndex(SIGNAL));
 		tracker.name = cursor.getString(cursor.getColumnIndex(TITLE));
 		tracker.imei = cursor.getString(cursor.getColumnIndex(IMEI));
-		tracker.time = cursor.getLong(cursor.getColumnIndex(MODIFIED_DATE));
+		tracker.modified = cursor.getLong(cursor.getColumnIndex(MODIFIED));
 		return tracker;
 	}
 
@@ -141,7 +173,7 @@ class TrackerDataAccess extends SQLiteOpenHelper
 	@Override
 	public void onCreate(SQLiteDatabase db)
 	{
-		db.execSQL("CREATE TABLE " + TABLE_NAME + " (" + _ID + " INTEGER PRIMARY KEY," + IMEI + " TEXT," + TITLE + " TEXT," + LATITUDE + " FLOAT," + LONGITUDE + " FLOAT," + MODIFIED_DATE + " INTEGER" + ");");
+		db.execSQL("CREATE TABLE " + TABLE_NAME + " (" + _ID + " INTEGER PRIMARY KEY," + IMEI + " TEXT," + TITLE + " TEXT," + LATITUDE + " REAL," + LONGITUDE + " REAL," + SPEED + " REAL," + BATTERY + " INTEGER," + SIGNAL + " INTEGER," + MODIFIED + " INTEGER" + ");");
 	}
 
 	@Override

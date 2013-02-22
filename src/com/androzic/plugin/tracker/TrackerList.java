@@ -20,14 +20,20 @@
 
 package com.androzic.plugin.tracker;
 
+import java.util.Calendar;
+import java.util.Date;
+
 import android.app.ListActivity;
+import android.content.ContentProviderClient;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.database.Cursor;
 import android.os.Bundle;
+import android.os.RemoteException;
 import android.preference.PreferenceManager;
+import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -41,6 +47,7 @@ import android.widget.TextView;
 
 import com.androzic.data.Tracker;
 import com.androzic.location.ILocationRemoteService;
+import com.androzic.provider.PreferencesContract;
 import com.androzic.util.StringFormatter;
 
 public class TrackerList extends ListActivity implements OnSharedPreferenceChangeListener
@@ -52,11 +59,14 @@ public class TrackerList extends ListActivity implements OnSharedPreferenceChang
 
 	private ILocationRemoteService locationService = null;
 
+	private int coordinatesFormat = 0;
+	private double speedFactor = 1;
+	private String speedAbbr = "m/s";
+
 	@Override
 	public void onCreate(final Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
-//		setContentView(R.layout.act_userlist);
 
 		TextView emptyView = (TextView) getListView().getEmptyView();
 		if (emptyView != null)
@@ -65,6 +75,8 @@ public class TrackerList extends ListActivity implements OnSharedPreferenceChang
 		SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
 		onSharedPreferenceChanged(sharedPreferences, null);
 		sharedPreferences.registerOnSharedPreferenceChangeListener(this);
+
+		readAndrozicPreferences();
 
 		dataAccess = new TrackerDataAccess(this);
 		Cursor cursor = dataAccess.getTrackers();
@@ -160,9 +172,36 @@ public class TrackerList extends ListActivity implements OnSharedPreferenceChang
 		    t.setText(tracker.name);
 		    t = (TextView) view.findViewById(R.id.imei);
 		    t.setText(tracker.imei);
-			String coordinates = StringFormatter.coordinates(0, " ", tracker.latitude, tracker.longitude);
+			String coordinates = StringFormatter.coordinates(coordinatesFormat, " ", tracker.latitude, tracker.longitude);
 		    t = (TextView) view.findViewById(R.id.coordinates);
 		    t.setText(coordinates);
+		    String speed = String.valueOf(Math.round(tracker.speed * speedFactor)) + " " + speedAbbr;
+		    t = (TextView) view.findViewById(R.id.speed);
+		    t.setText(speed);
+		    String battery = "";
+		    if (tracker.battery == Integer.MAX_VALUE)
+		    	battery = getString(R.string.full);
+		    if (tracker.battery == Integer.MIN_VALUE)
+		    	battery = getString(R.string.low);
+		    if (tracker.battery >=0 && tracker.battery <= 100)
+		    	battery = String.valueOf(tracker.battery) + "%";
+		    t = (TextView) view.findViewById(R.id.battery);
+		    t.setText(String.format("%s: %s", getString(R.string.battery), battery));
+		    String signal = "";
+		    if (tracker.signal == Integer.MAX_VALUE)
+		    	signal = getString(R.string.full);
+		    if (tracker.signal == Integer.MIN_VALUE)
+		    	signal = getString(R.string.low);
+		    if (tracker.signal >=0 && tracker.signal <= 100)
+		    	signal = String.valueOf(tracker.signal) + "%";
+		    t = (TextView) view.findViewById(R.id.signal);
+		    t.setText(String.format("%s: %s", getString(R.string.signal), signal));
+		    Calendar calendar = Calendar.getInstance();
+		    calendar.setTimeInMillis(tracker.modified);
+		    Date date = calendar.getTime();
+		    String modified = DateFormat.getDateFormat(TrackerList.this).format(date)+" "+DateFormat.getTimeFormat(TrackerList.this).format(date);
+		    t = (TextView) view.findViewById(R.id.modified);
+		    t.setText(modified);
 		}
 		 
 		@Override
@@ -170,6 +209,49 @@ public class TrackerList extends ListActivity implements OnSharedPreferenceChang
 		{
 		    return mInflater.inflate(mItemLayout, parent, false);
 		}
+	}
+	
+	private void readAndrozicPreferences()
+	{
+		// Resolve content provider
+		ContentProviderClient client = getContentResolver().acquireContentProviderClient(PreferencesContract.PREFERENCES_URI);
+
+		// Setup preference items we want to read (order is important - it
+		// should correlate with the read order later in code)
+		int[] fields = new int[] { PreferencesContract.COORDINATES_FORMAT, PreferencesContract.SPEED_FACTOR, PreferencesContract.SPEED_ABBREVIATION, PreferencesContract.DISTANCE_FACTOR, PreferencesContract.DISTANCE_ABBREVIATION,
+				PreferencesContract.DISTANCE_SHORT_FACTOR, PreferencesContract.DISTANCE_SHORT_ABBREVIATION };
+		// Convert them to strings
+		String[] args = new String[fields.length];
+		for (int i = 0; i < fields.length; i++)
+		{
+			args[i] = String.valueOf(fields[i]);
+		}
+		try
+		{
+			// Request data from preferences content provider
+			Cursor cursor = client.query(PreferencesContract.PREFERENCES_URI, PreferencesContract.DATA_COLUMNS, PreferencesContract.DATA_SELECTION, args, null);
+			cursor.moveToFirst();
+			coordinatesFormat = cursor.getInt(PreferencesContract.DATA_COLUMN);
+			cursor.moveToNext();
+			speedFactor = cursor.getDouble(PreferencesContract.DATA_COLUMN);
+			cursor.moveToNext();
+			speedAbbr = cursor.getString(PreferencesContract.DATA_COLUMN);
+			cursor.moveToNext();
+			StringFormatter.distanceFactor = cursor.getDouble(PreferencesContract.DATA_COLUMN);
+			cursor.moveToNext();
+			StringFormatter.distanceAbbr = cursor.getString(PreferencesContract.DATA_COLUMN);
+			cursor.moveToNext();
+			StringFormatter.distanceShortFactor = cursor.getDouble(PreferencesContract.DATA_COLUMN);
+			cursor.moveToNext();
+			StringFormatter.distanceShortAbbr = cursor.getString(PreferencesContract.DATA_COLUMN);
+		}
+		catch (RemoteException e)
+		{
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		// Notify that the binding is not required anymore
+		client.release();
 	}
 
 	@Override
