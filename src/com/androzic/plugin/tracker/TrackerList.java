@@ -23,14 +23,23 @@ package com.androzic.plugin.tracker;
 import java.util.Calendar;
 import java.util.Date;
 
+import net.londatiga.android.ActionItem;
+import net.londatiga.android.QuickAction;
+import net.londatiga.android.QuickAction.OnActionItemClickListener;
 import android.app.ListActivity;
+import android.content.ComponentName;
 import android.content.ContentProviderClient;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
+import android.content.res.Resources;
 import android.database.Cursor;
+import android.graphics.drawable.Drawable;
+import android.location.Location;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.text.format.DateFormat;
@@ -43,11 +52,14 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CursorAdapter;
 import android.widget.ListView;
+import android.widget.PopupWindow;
 import android.widget.TextView;
 
 import com.androzic.data.Tracker;
+import com.androzic.location.ILocationCallback;
 import com.androzic.location.ILocationRemoteService;
 import com.androzic.provider.PreferencesContract;
+import com.androzic.util.Geo;
 import com.androzic.util.StringFormatter;
 
 public class TrackerList extends ListActivity implements OnSharedPreferenceChangeListener
@@ -58,10 +70,20 @@ public class TrackerList extends ListActivity implements OnSharedPreferenceChang
 	private TrackerListAdapter adapter;
 
 	private ILocationRemoteService locationService = null;
+	private Location currentLocation = new Location("fake");
 
 	private int coordinatesFormat = 0;
 	private double speedFactor = 1;
 	private String speedAbbr = "m/s";
+
+	private static final int qaTrackerVisible = 1;
+	private static final int qaTrackerNavigate = 2;
+	private static final int qaTrackerEdit = 3;
+	private static final int qaTrackerDelete = 4;
+	
+    private QuickAction quickAction;
+	private int selectedPosition;
+	private Drawable selectedBackground;
 
 	@Override
 	public void onCreate(final Bundle savedInstanceState)
@@ -73,16 +95,44 @@ public class TrackerList extends ListActivity implements OnSharedPreferenceChang
 			emptyView.setText(R.string.msg_empty_list);
 
 		SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+		//TODO Remove if will be not used
 		onSharedPreferenceChanged(sharedPreferences, null);
 		sharedPreferences.registerOnSharedPreferenceChangeListener(this);
 
 		readAndrozicPreferences();
 
+		// Prepare quick actions menu
+		Resources resources = getResources();
+		quickAction = new QuickAction(this);
+		quickAction.addActionItem(new ActionItem(qaTrackerVisible, getString(R.string.menu_view), resources.getDrawable(R.drawable.ic_menu_view)));
+		quickAction.addActionItem(new ActionItem(qaTrackerNavigate, getString(R.string.menu_navigate), resources.getDrawable(R.drawable.ic_menu_directions)));
+		quickAction.addActionItem(new ActionItem(qaTrackerEdit, getString(R.string.menu_edit), resources.getDrawable(R.drawable.ic_menu_edit)));
+		quickAction.addActionItem(new ActionItem(qaTrackerDelete, getString(R.string.menu_delete), resources.getDrawable(R.drawable.ic_menu_delete)));
+
+		quickAction.setOnActionItemClickListener(trackerActionItemClickListener);
+		quickAction.setOnDismissListener(new PopupWindow.OnDismissListener() {			
+			@Override
+			public void onDismiss()
+			{
+				View v = getListView().findViewWithTag("selected");
+				if (v != null)
+				{
+					v.setBackgroundDrawable(selectedBackground);
+					v.setTag(null);
+				}
+			}
+		});
+
+		// Create database connection
 		dataAccess = new TrackerDataAccess(this);
 		Cursor cursor = dataAccess.getTrackers();
 		
+		// Bind list adapter
 		adapter = new TrackerListAdapter(this, cursor);
 		setListAdapter(adapter);
+
+		// Connect to location service
+		connect();
 	}
 
 	@Override
@@ -101,6 +151,11 @@ public class TrackerList extends ListActivity implements OnSharedPreferenceChang
 	public void onDestroy()
 	{
 		super.onDestroy();
+		
+		// Disconnect from location service
+		disconnect();
+		
+		// Close database connection
 		adapter.getCursor().close();
 		dataAccess.close();
 	}
@@ -119,39 +174,44 @@ public class TrackerList extends ListActivity implements OnSharedPreferenceChang
 		switch (item.getItemId())
 		{
 			case R.id.menuPreferences:
-				startActivity(new Intent(this, Preferences.class));
+				quickAction.show(getListView());
+//				startActivity(new Intent(this, Preferences.class));
 				return true;
 		}
 		return false;
 	}
 
 	@Override
-	protected void onListItemClick(ListView l, View v, int position, long id)
+	protected void onListItemClick(ListView lv, View v, int position, long id)
 	{
-		Cursor cursor = (Cursor) adapter.getItem(position);
-		Tracker tracker = dataAccess.getTracker(cursor);
-		Log.d(TAG, "Passing coordinates to Androzic");
-		Intent i = new Intent("com.androzic.CENTER_ON_COORDINATES");
-		i.putExtra("lat", tracker.latitude);
-		i.putExtra("lon", tracker.longitude);
-		sendBroadcast(i);
+		v.setTag("selected");
+		selectedPosition = position;
+		selectedBackground = v.getBackground();
+		v.setBackgroundResource(R.drawable.list_selector_background_focus);
+		quickAction.show(v);
 	}
-/*
+
 	private void connect()
 	{
-		bindService(new Intent(this, SharingService.class), sharingConnection, 0);
+		bindService(new Intent("com.androzic.location"), locationConnection, BIND_AUTO_CREATE);
 	}
 
 	private void disconnect()
 	{
-		if (sharingService != null)
+		if (locationService != null)
 		{
-			unregisterReceiver(sharingReceiver);
-			unbindService(sharingConnection);
-			sharingService = null;
+			try
+			{
+				locationService.unregisterCallback(locationCallback);
+			}
+			catch (RemoteException e)
+			{
+			}
+			unbindService(locationConnection);
+			locationService = null;
 		}
 	}
-*/
+
 	public class TrackerListAdapter extends CursorAdapter
 	{
 		private LayoutInflater mInflater;
@@ -178,6 +238,17 @@ public class TrackerList extends ListActivity implements OnSharedPreferenceChang
 		    String speed = String.valueOf(Math.round(tracker.speed * speedFactor)) + " " + speedAbbr;
 		    t = (TextView) view.findViewById(R.id.speed);
 		    t.setText(speed);
+			String distance = "";
+			synchronized (currentLocation)
+			{
+				if (!"fake".equals(currentLocation.getProvider()))
+				{
+					double dist = Geo.distance(tracker.latitude, tracker.longitude, currentLocation.getLatitude(), currentLocation.getLongitude());
+					distance = StringFormatter.distanceH(dist);
+				}
+			}
+		    t = (TextView) view.findViewById(R.id.distance);
+		    t.setText(distance);
 		    String battery = "";
 		    if (tracker.battery == Integer.MAX_VALUE)
 		    	battery = getString(R.string.full);
@@ -211,6 +282,48 @@ public class TrackerList extends ListActivity implements OnSharedPreferenceChang
 		}
 	}
 	
+	private OnActionItemClickListener trackerActionItemClickListener = new OnActionItemClickListener(){
+		@Override
+		public void onItemClick(QuickAction source, int pos, int actionId)
+		{
+			Application application = (Application) getApplication();
+			Cursor cursor = (Cursor) adapter.getItem(selectedPosition);
+			Tracker tracker = dataAccess.getTracker(cursor);
+	
+	    	switch (actionId)
+	    	{
+	    		case qaTrackerVisible:
+	    			Log.d(TAG, "Passing coordinates to Androzic");
+	    			Intent i = new Intent("com.androzic.CENTER_ON_COORDINATES");
+	    			i.putExtra("lat", tracker.latitude);
+	    			i.putExtra("lon", tracker.longitude);
+	    			sendBroadcast(i);
+					break;
+				case qaTrackerNavigate:
+					finish();
+					break;
+	    		case qaTrackerEdit:
+//	    	        startActivity(new Intent(WaypointList.this, WaypointProperties.class).putExtra("INDEX", position));
+	    	        break;
+	    		case qaTrackerDelete:
+	    			dataAccess.removeTracker(tracker);
+	    			try
+					{
+						application.removeMapObject(tracker);
+					}
+					catch (RemoteException e)
+					{
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+	    			// TODO Change to obtaining new cursor
+	    			cursor.requery();
+	    			adapter.notifyDataSetChanged();
+	    			break;
+	    	}
+		}
+	};
+
 	private void readAndrozicPreferences()
 	{
 		// Resolve content provider
@@ -261,4 +374,71 @@ public class TrackerList extends ListActivity implements OnSharedPreferenceChang
 		if (adapter != null)
 			adapter.notifyDataSetChanged();
 	}
+	
+	private ServiceConnection locationConnection = new ServiceConnection() {
+		public void onServiceConnected(ComponentName className, IBinder service)
+		{
+			locationService = ILocationRemoteService.Stub.asInterface(service);
+			try
+			{
+				locationService.registerCallback(locationCallback);
+				Log.d(TAG, "Location service connected");
+			}
+			catch (RemoteException e)
+			{
+				e.printStackTrace();
+			}
+		}
+
+		public void onServiceDisconnected(ComponentName className)
+		{
+			Log.d(TAG, "Location service disconnected");
+			locationService = null;
+			currentLocation = new Location("fake");
+			if (adapter != null)
+				adapter.notifyDataSetChanged();
+		}
+	};
+
+	private Runnable notifyAdapter = new Runnable() {
+		@Override
+		public void run()
+		{
+			if (adapter != null)
+				adapter.notifyDataSetChanged();
+		}
+	};
+
+	private ILocationCallback locationCallback = new ILocationCallback.Stub() {
+		@Override
+		public void onGpsStatusChanged(String provider, int status, int fsats, int tsats)
+		{
+		}
+
+		@Override
+		public void onLocationChanged(Location loc, boolean continous, boolean geoid, float smoothspeed, float avgspeed)
+		{
+			Log.d(TAG, "Location arrived");
+			synchronized (currentLocation)
+			{
+				currentLocation.set(loc);
+				TrackerList.this.runOnUiThread(notifyAdapter);
+			}
+		}
+
+		@Override
+		public void onProviderChanged(String provider)
+		{
+		}
+
+		@Override
+		public void onProviderDisabled(String provider)
+		{
+		}
+
+		@Override
+		public void onProviderEnabled(String provider)
+		{
+		}
+	};
 }

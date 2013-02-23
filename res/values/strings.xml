@@ -8,6 +8,10 @@
     <string name="low">Low</string>
     <string name="msg_empty_list">Nothing to display</string>
     <string name="menu_preferences">Settings</string>
+    <string name="menu_view">View</string>
+    <string name="menu_navigate">Navigate</string>
+    <string name="menu_edit">Edit</string>
+    <string name="menu_delete">Delete</string>
     <string name="pref_settings_title">Settings</string>
     <string name="pref_tracker_title">Trackers</string>
     <string name="pref_tracker_markercolor_title">Marker color</string>

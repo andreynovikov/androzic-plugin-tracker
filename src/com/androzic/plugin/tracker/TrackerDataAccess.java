@@ -149,6 +149,19 @@ class TrackerDataAccess extends SQLiteOpenHelper
 		return id;
 	}
 
+	public void removeTracker(Tracker tracker)
+	{
+		SQLiteDatabase db = getWritableDatabase();
+		Cursor cursor = db.query(TrackerDataAccess.TABLE_NAME, columnsId, IMEI + " = ?", new String[] { tracker.imei }, null, null, null);
+		if (cursor.getCount() > 0)
+		{
+			cursor.moveToFirst();
+			long id = cursor.getLong(cursor.getColumnIndex(_ID));
+			cursor.close();
+			db.delete(TrackerDataAccess.TABLE_NAME, _ID + " = ?", new String[] { String.valueOf(id) });
+		}
+	}
+
 	public Tracker getTracker(Cursor cursor)
 	{
 		Tracker tracker = new Tracker();
