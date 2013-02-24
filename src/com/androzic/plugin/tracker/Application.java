@@ -28,6 +28,8 @@ import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.RemoteException;
@@ -40,11 +42,12 @@ import com.androzic.provider.DataContract;
 public class Application extends BaseApplication
 {
 	private Map<String, Long> mapObjectIds = new HashMap<String, Long>();
-	
+
 	int markerColor = Color.BLUE;
 
 	/**
 	 * Sends tracker to Androzic map
+	 * 
 	 * @throws RemoteException
 	 */
 	void sendMapObject(Tracker tracker) throws RemoteException
@@ -54,6 +57,7 @@ public class Application extends BaseApplication
 		values.put(DataContract.MAPOBJECT_COLUMNS[DataContract.MAPOBJECT_LATITUDE_COLUMN], tracker.latitude);
 		values.put(DataContract.MAPOBJECT_COLUMNS[DataContract.MAPOBJECT_LONGITUDE_COLUMN], tracker.longitude);
 		values.put(DataContract.MAPOBJECT_COLUMNS[DataContract.MAPOBJECT_NAME_COLUMN], tracker.name);
+		values.put(DataContract.MAPOBJECT_COLUMNS[DataContract.MAPOBJECT_IMAGE_COLUMN], tracker.image);
 		values.put(DataContract.MAPOBJECT_COLUMNS[DataContract.MAPOBJECT_BACKCOLOR_COLUMN], markerColor);
 		synchronized (mapObjectIds)
 		{
@@ -75,6 +79,7 @@ public class Application extends BaseApplication
 
 	/**
 	 * Sends all known trackers to Androzic map
+	 * 
 	 * @throws RemoteException
 	 */
 	void sendMapObjects() throws RemoteException
@@ -83,7 +88,7 @@ public class Application extends BaseApplication
 		{
 			TrackerDataAccess dataAccess = new TrackerDataAccess(this);
 			Cursor cursor = dataAccess.getTrackers();
-			if (! cursor.moveToFirst())
+			if (!cursor.moveToFirst())
 			{
 				dataAccess.close();
 				return;
@@ -100,7 +105,8 @@ public class Application extends BaseApplication
 
 	/**
 	 * Removes tracker from Androzic map
-	 * @throws RemoteException 
+	 * 
+	 * @throws RemoteException
 	 */
 	void removeMapObject(Tracker tracker) throws RemoteException
 	{
@@ -119,6 +125,7 @@ public class Application extends BaseApplication
 
 	/**
 	 * Removes all previously sent trackers from Androzic map
+	 * 
 	 * @throws RemoteException
 	 */
 	void removeMapObjects() throws RemoteException
@@ -128,7 +135,7 @@ public class Application extends BaseApplication
 		{
 			String[] args = new String[mapObjectIds.size()];
 			int i = 0;
-			for (Map.Entry<String,Long> entry : mapObjectIds.entrySet())
+			for (Map.Entry<String, Long> entry : mapObjectIds.entrySet())
 			{
 				args[i] = String.valueOf(entry.getValue());
 				i++;
@@ -138,7 +145,37 @@ public class Application extends BaseApplication
 		}
 		contentProvider.release();
 	}
-	
+
+	/**
+	 * Queries icon bitmap
+	 */
+	public Bitmap getIcon(String icon)
+	{
+		Bitmap bitmap = null;
+
+		if (icon == null || "".equals(icon))
+			return null;
+
+		// Resolve content provider
+		ContentProviderClient client = getContentResolver().acquireContentProviderClient(DataContract.ICONS_URI);
+		Uri uri = Uri.withAppendedPath(DataContract.ICONS_URI, icon);
+		try
+		{
+			Cursor cursor = client.query(uri, DataContract.ICON_COLUMNS, null, null, null);
+			cursor.moveToFirst();
+			byte[] bytes = cursor.getBlob(DataContract.ICON_COLUMN);
+			if (bytes != null)
+				bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+		}
+		catch (RemoteException e)
+		{
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		client.release();
+		return bitmap;
+	}
+
 	@Override
 	public String getRootPath()
 	{

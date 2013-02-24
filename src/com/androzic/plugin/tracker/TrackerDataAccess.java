@@ -59,6 +59,13 @@ class TrackerDataAccess extends SQLiteOpenHelper
 	 */
 	public static final String IMEI = "imei";
 	/**
+	 * Icon
+	 * <P>
+	 * Type: TEXT
+	 * </P>
+	 */
+	public static final String ICON = "icon";
+	/**
 	 * Latitude
 	 * <P>
 	 * Type: DOUBLE
@@ -102,7 +109,7 @@ class TrackerDataAccess extends SQLiteOpenHelper
 	public static final String MODIFIED = "modified";
 
 	private static final String[] columnsId = new String[] { _ID };
-	private static final String[] columnsAll = new String[] { _ID, TITLE, IMEI, LATITUDE, LONGITUDE, SPEED, BATTERY, SIGNAL, MODIFIED };
+	private static final String[] columnsAll = new String[] { _ID, TITLE, ICON, IMEI, LATITUDE, LONGITUDE, SPEED, BATTERY, SIGNAL, MODIFIED };
 
 	TrackerDataAccess(Context context)
 	{
@@ -124,6 +131,7 @@ class TrackerDataAccess extends SQLiteOpenHelper
 		values.put(SPEED, tracker.speed);
 		values.put(BATTERY, tracker.battery);
 		values.put(SIGNAL, tracker.signal);
+		values.put(ICON, tracker.image);
 		values.put(MODIFIED, Long.valueOf(tracker.modified));
 
 		long id;
@@ -162,6 +170,20 @@ class TrackerDataAccess extends SQLiteOpenHelper
 		}
 	}
 
+	public Tracker getTracker(String imei)
+	{
+		SQLiteDatabase db = getReadableDatabase();
+		Cursor cursor = db.query(TrackerDataAccess.TABLE_NAME, columnsAll, IMEI + " = ?", new String[] { imei }, null, null, null);
+		if (cursor.getCount() > 0)
+		{
+			cursor.moveToFirst();
+			Tracker tracker = getTracker(cursor);
+			cursor.close();
+			return tracker;
+		}
+		return null;
+	}
+
 	public Tracker getTracker(Cursor cursor)
 	{
 		Tracker tracker = new Tracker();
@@ -173,6 +195,7 @@ class TrackerDataAccess extends SQLiteOpenHelper
 		tracker.signal = cursor.getInt(cursor.getColumnIndex(SIGNAL));
 		tracker.name = cursor.getString(cursor.getColumnIndex(TITLE));
 		tracker.imei = cursor.getString(cursor.getColumnIndex(IMEI));
+		tracker.image = cursor.getString(cursor.getColumnIndex(ICON));
 		tracker.modified = cursor.getLong(cursor.getColumnIndex(MODIFIED));
 		return tracker;
 	}
@@ -186,7 +209,7 @@ class TrackerDataAccess extends SQLiteOpenHelper
 	@Override
 	public void onCreate(SQLiteDatabase db)
 	{
-		db.execSQL("CREATE TABLE " + TABLE_NAME + " (" + _ID + " INTEGER PRIMARY KEY," + IMEI + " TEXT," + TITLE + " TEXT," + LATITUDE + " REAL," + LONGITUDE + " REAL," + SPEED + " REAL," + BATTERY + " INTEGER," + SIGNAL + " INTEGER," + MODIFIED + " INTEGER" + ");");
+		db.execSQL("CREATE TABLE " + TABLE_NAME + " (" + _ID + " INTEGER PRIMARY KEY," + IMEI + " TEXT," + TITLE + " TEXT," + ICON + " TEXT," + LATITUDE + " REAL," + LONGITUDE + " REAL," + SPEED + " REAL," + BATTERY + " INTEGER," + SIGNAL + " INTEGER," + MODIFIED + " INTEGER" + ");");
 	}
 
 	@Override

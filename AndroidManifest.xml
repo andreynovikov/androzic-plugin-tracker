@@ -33,6 +33,10 @@
                 <action android:name="com.androzic.plugins.preferences" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".TrackerProperties"
+            android:label="@string/properties_name"
+            android:theme="@style/BlackDialog" />
 
         <receiver android:name=".Executor" >
             <intent-filter>
@@ -40,9 +44,8 @@
                 <action android:name="com.androzic.plugins.action.FINALIZE" />
             </intent-filter>
         </receiver>
-        <receiver
-            android:name=".SMSReceiver" >
-            <intent-filter android:priority="100">
+        <receiver android:name=".SMSReceiver" >
+            <intent-filter android:priority="100" >
                 <action android:name="android.provider.Telephony.SMS_RECEIVED" />
             </intent-filter>
         </receiver>

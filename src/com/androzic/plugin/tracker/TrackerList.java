@@ -36,6 +36,8 @@ import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.res.Resources;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.os.Bundle;
@@ -174,8 +176,7 @@ public class TrackerList extends ListActivity implements OnSharedPreferenceChang
 		switch (item.getItemId())
 		{
 			case R.id.menuPreferences:
-				quickAction.show(getListView());
-//				startActivity(new Intent(this, Preferences.class));
+				startActivity(new Intent(this, Preferences.class));
 				return true;
 		}
 		return false;
@@ -189,6 +190,13 @@ public class TrackerList extends ListActivity implements OnSharedPreferenceChang
 		selectedBackground = v.getBackground();
 		v.setBackgroundResource(R.drawable.list_selector_background_focus);
 		quickAction.show(v);
+	}
+	
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data)
+	{
+		super.onActivityResult(requestCode, resultCode, data);
+		updateData();
 	}
 
 	private void connect()
@@ -211,6 +219,14 @@ public class TrackerList extends ListActivity implements OnSharedPreferenceChang
 			locationService = null;
 		}
 	}
+	
+	private void updateData()
+	{
+		Cursor cursor = (Cursor) adapter.getItem(selectedPosition);
+		// TODO Change to obtaining new cursor
+		cursor.requery();
+		adapter.notifyDataSetChanged();
+	}
 
 	public class TrackerListAdapter extends CursorAdapter
 	{
@@ -230,6 +246,15 @@ public class TrackerList extends ListActivity implements OnSharedPreferenceChang
 			Tracker tracker = dataAccess.getTracker(cursor);
 		    TextView t = (TextView) view.findViewById(R.id.name);
 		    t.setText(tracker.name);
+			Application application = Application.getApplication();
+		    Bitmap b = application.getIcon(tracker.image);
+		    if (b != null)
+		    {
+			    Drawable drawable = new BitmapDrawable(getResources(), b);
+				drawable.setBounds(0, 0, b.getWidth(), b.getHeight());
+		    	t.setCompoundDrawables(drawable, null, null, null);
+		    	t.setCompoundDrawablePadding(b.getWidth() / 5);
+		    }
 		    t = (TextView) view.findViewById(R.id.imei);
 		    t.setText(tracker.imei);
 			String coordinates = StringFormatter.coordinates(coordinatesFormat, " ", tracker.latitude, tracker.longitude);
@@ -303,7 +328,7 @@ public class TrackerList extends ListActivity implements OnSharedPreferenceChang
 					finish();
 					break;
 	    		case qaTrackerEdit:
-//	    	        startActivity(new Intent(WaypointList.this, WaypointProperties.class).putExtra("INDEX", position));
+					startActivityForResult(new Intent(TrackerList.this, TrackerProperties.class).putExtra("imei", tracker.imei), 0);
 	    	        break;
 	    		case qaTrackerDelete:
 	    			dataAccess.removeTracker(tracker);
@@ -316,9 +341,7 @@ public class TrackerList extends ListActivity implements OnSharedPreferenceChang
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
-	    			// TODO Change to obtaining new cursor
-	    			cursor.requery();
-	    			adapter.notifyDataSetChanged();
+	    			updateData();
 	    			break;
 	    	}
 		}
@@ -370,7 +393,6 @@ public class TrackerList extends ListActivity implements OnSharedPreferenceChang
 	@Override
 	public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key)
 	{
-
 		if (adapter != null)
 			adapter.notifyDataSetChanged();
 	}
