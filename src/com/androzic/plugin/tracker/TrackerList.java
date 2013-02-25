@@ -22,6 +22,7 @@ package com.androzic.plugin.tracker;
 
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 
 import net.londatiga.android.ActionItem;
 import net.londatiga.android.QuickAction;
@@ -34,6 +35,8 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -58,8 +61,10 @@ import android.widget.PopupWindow;
 import android.widget.TextView;
 
 import com.androzic.data.Tracker;
+import com.androzic.location.BaseLocationService;
 import com.androzic.location.ILocationCallback;
 import com.androzic.location.ILocationRemoteService;
+import com.androzic.navigation.BaseNavigationService;
 import com.androzic.provider.PreferencesContract;
 import com.androzic.util.Geo;
 import com.androzic.util.StringFormatter;
@@ -106,7 +111,7 @@ public class TrackerList extends ListActivity implements OnSharedPreferenceChang
 		// Prepare quick actions menu
 		Resources resources = getResources();
 		quickAction = new QuickAction(this);
-		quickAction.addActionItem(new ActionItem(qaTrackerVisible, getString(R.string.menu_view), resources.getDrawable(R.drawable.ic_menu_view)));
+		quickAction.addActionItem(new ActionItem(qaTrackerVisible, getString(R.string.menu_view), resources.getDrawable(R.drawable.ic_menu_eye)));
 		quickAction.addActionItem(new ActionItem(qaTrackerNavigate, getString(R.string.menu_navigate), resources.getDrawable(R.drawable.ic_menu_directions)));
 		quickAction.addActionItem(new ActionItem(qaTrackerEdit, getString(R.string.menu_edit), resources.getDrawable(R.drawable.ic_menu_edit)));
 		quickAction.addActionItem(new ActionItem(qaTrackerDelete, getString(R.string.menu_delete), resources.getDrawable(R.drawable.ic_menu_delete)));
@@ -201,7 +206,7 @@ public class TrackerList extends ListActivity implements OnSharedPreferenceChang
 
 	private void connect()
 	{
-		bindService(new Intent("com.androzic.location"), locationConnection, BIND_AUTO_CREATE);
+		bindService(new Intent(BaseLocationService.ANDROZIC_LOCATION_SERVICE), locationConnection, BIND_AUTO_CREATE);
 	}
 
 	private void disconnect()
@@ -325,6 +330,21 @@ public class TrackerList extends ListActivity implements OnSharedPreferenceChang
 	    			sendBroadcast(i);
 					break;
 				case qaTrackerNavigate:
+					PackageManager packageManager = getPackageManager();
+					Intent serviceIntent = new Intent(BaseNavigationService.ANDROZIC_NAVIGATION_SERVICE);
+					List<ResolveInfo> services = packageManager.queryIntentServices(serviceIntent, 0);
+					if (services.size() > 0)
+					{
+						ResolveInfo service = services.get(0);
+						Intent intent = new Intent();
+						intent.setClassName(service.serviceInfo.packageName, service.serviceInfo.name);
+						intent.setAction(BaseNavigationService.NAVIGATE_MAPOBJECT_WITH_ID);
+						long id = application.getTrackerId(tracker.imei);
+						intent.putExtra(BaseNavigationService.EXTRA_ID, id);
+						// This should not happen but let us check
+						if (id > 0)
+							startService(intent);
+					}
 					finish();
 					break;
 	    		case qaTrackerEdit:

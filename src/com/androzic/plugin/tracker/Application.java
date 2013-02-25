@@ -45,6 +45,16 @@ public class Application extends BaseApplication
 
 	int markerColor = Color.BLUE;
 
+
+	/**
+	 * Returns Androzic map object ID
+	 */
+	public long getTrackerId(String imei)
+	{
+		Long id = mapObjectIds.get(imei);
+		return id != null ? id.longValue() : -1;
+	}
+
 	/**
 	 * Sends tracker to Androzic map
 	 * 
