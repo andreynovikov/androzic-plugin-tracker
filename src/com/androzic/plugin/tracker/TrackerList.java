@@ -111,10 +111,10 @@ public class TrackerList extends ListActivity implements OnSharedPreferenceChang
 		// Prepare quick actions menu
 		Resources resources = getResources();
 		quickAction = new QuickAction(this);
-		quickAction.addActionItem(new ActionItem(qaTrackerVisible, getString(R.string.menu_view), resources.getDrawable(R.drawable.ic_menu_eye)));
-		quickAction.addActionItem(new ActionItem(qaTrackerNavigate, getString(R.string.menu_navigate), resources.getDrawable(R.drawable.ic_menu_directions)));
-		quickAction.addActionItem(new ActionItem(qaTrackerEdit, getString(R.string.menu_edit), resources.getDrawable(R.drawable.ic_menu_edit)));
-		quickAction.addActionItem(new ActionItem(qaTrackerDelete, getString(R.string.menu_delete), resources.getDrawable(R.drawable.ic_menu_delete)));
+		quickAction.addActionItem(new ActionItem(qaTrackerVisible, getString(R.string.menu_view), resources.getDrawable(R.drawable.ic_action_show)));
+		quickAction.addActionItem(new ActionItem(qaTrackerNavigate, getString(R.string.menu_navigate), resources.getDrawable(R.drawable.ic_action_directions)));
+		quickAction.addActionItem(new ActionItem(qaTrackerEdit, getString(R.string.menu_edit), resources.getDrawable(R.drawable.ic_action_edit)));
+		quickAction.addActionItem(new ActionItem(qaTrackerDelete, getString(R.string.menu_delete), resources.getDrawable(R.drawable.ic_action_trash)));
 
 		quickAction.setOnActionItemClickListener(trackerActionItemClickListener);
 		quickAction.setOnDismissListener(new PopupWindow.OnDismissListener() {			
