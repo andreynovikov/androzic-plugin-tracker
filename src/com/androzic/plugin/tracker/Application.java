@@ -75,8 +75,11 @@ public class Application extends BaseApplication
 			if (id == null)
 			{
 				Uri uri = contentProvider.insert(DataContract.MAPOBJECTS_URI, values);
-				id = ContentUris.parseId(uri);
-				mapObjectIds.put(tracker.imei, id);
+				if (uri != null)
+				{
+					id = ContentUris.parseId(uri);
+					mapObjectIds.put(tracker.imei, id);
+				}
 			}
 			else
 			{

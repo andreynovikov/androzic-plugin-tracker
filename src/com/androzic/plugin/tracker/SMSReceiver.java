@@ -26,11 +26,17 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import android.annotation.SuppressLint;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.RemoteException;
+import android.preference.PreferenceManager;
+import android.support.v4.app.NotificationCompat;
 import android.telephony.SmsMessage;
 import android.util.Log;
 
@@ -116,6 +122,7 @@ public class SMSReceiver extends BroadcastReceiver
 		}
 		if (tracker.imei != null)
 		{
+			// Save tracker data
 			TrackerDataAccess dataAccess = new TrackerDataAccess(context);
 			dataAccess.saveTracker(tracker);
 			dataAccess.close();
@@ -129,7 +136,40 @@ public class SMSReceiver extends BroadcastReceiver
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			abortBroadcast();
+			
+			SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+
+			// Show notification
+			boolean notifications = prefs.getBoolean(context.getString(R.string.pref_tracker_notifications), context.getResources().getBoolean(R.bool.def_notifications));
+			if (notifications)
+			{
+				Intent i = new Intent("com.androzic.COORDINATES_RECEIVED");
+				i.putExtra("title", tracker.name);
+				i.putExtra("sender", tracker.name);
+				i.putExtra("origin", context.getApplicationContext().getPackageName());
+				i.putExtra("lat", tracker.latitude);
+				i.putExtra("lon", tracker.longitude);
+				
+				String msg = context.getString(R.string.notif_text, tracker.name);
+				NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
+				builder.setContentTitle(context.getString(R.string.app_name));
+				builder.setContentText(msg);
+				PendingIntent contentIntent = PendingIntent.getBroadcast(context, 0, i, PendingIntent.FLAG_ONE_SHOT);
+				builder.setContentIntent(contentIntent);
+				builder.setSmallIcon(R.drawable.ic_stat_tracker);
+				builder.setTicker(msg);
+				builder.setWhen(tracker.modified);
+				builder.setDefaults(Notification.DEFAULT_ALL);
+				builder.setAutoCancel(true);
+				Notification notification = builder.build();
+				NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+				notificationManager.notify((int) tracker._id, notification);
+			}
+			
+			// Conceal SMS
+			boolean concealsms = prefs.getBoolean(context.getString(R.string.pref_tracker_concealsms), context.getResources().getBoolean(R.bool.def_concealsms));
+			if (concealsms)
+				abortBroadcast();
 		}
 	}
 }
