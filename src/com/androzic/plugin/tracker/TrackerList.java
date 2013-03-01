@@ -33,8 +33,6 @@ import android.content.ContentProviderClient;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.content.SharedPreferences;
-import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.res.Resources;
@@ -46,7 +44,6 @@ import android.location.Location;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
-import android.preference.PreferenceManager;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -69,7 +66,7 @@ import com.androzic.provider.PreferencesContract;
 import com.androzic.util.Geo;
 import com.androzic.util.StringFormatter;
 
-public class TrackerList extends ListActivity implements OnSharedPreferenceChangeListener
+public class TrackerList extends ListActivity
 {
 	private static final String TAG = "TrackerList";
 	private TrackerDataAccess dataAccess;
@@ -101,11 +98,6 @@ public class TrackerList extends ListActivity implements OnSharedPreferenceChang
 		TextView emptyView = (TextView) getListView().getEmptyView();
 		if (emptyView != null)
 			emptyView.setText(R.string.msg_empty_list);
-
-		SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-		//TODO Remove if will be not used
-		onSharedPreferenceChanged(sharedPreferences, null);
-		sharedPreferences.registerOnSharedPreferenceChangeListener(this);
 
 		readAndrozicPreferences();
 
@@ -411,13 +403,6 @@ public class TrackerList extends ListActivity implements OnSharedPreferenceChang
 		client.release();
 	}
 
-	@Override
-	public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key)
-	{
-		if (adapter != null)
-			adapter.notifyDataSetChanged();
-	}
-	
 	private ServiceConnection locationConnection = new ServiceConnection() {
 		public void onServiceConnected(ComponentName className, IBinder service)
 		{
