@@ -122,7 +122,7 @@ public class TrackerProperties extends Activity
 			case R.id.remove:
 				iconValue = null;
 				ImageButton icon = (ImageButton) findViewById(R.id.icon_button);
-				icon.setImageDrawable(this.getResources().getDrawable(R.drawable.ic_menu_close_clear_cancel));
+				icon.setImageDrawable(this.getResources().getDrawable(R.drawable.ic_action_halt));
 				break;
 		}
 		return true;
@@ -180,6 +180,6 @@ public class TrackerProperties extends Activity
 		if (b != null)
 			iconButton.setImageBitmap(b);
 		else
-			iconButton.setImageDrawable(this.getResources().getDrawable(R.drawable.ic_menu_close_clear_cancel));
+			iconButton.setImageDrawable(this.getResources().getDrawable(R.drawable.ic_action_halt));
 	}
 }
