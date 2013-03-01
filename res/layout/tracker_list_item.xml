@@ -1,15 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Extra FrameLayout is used to preserve paddings when background drawable is set -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="fill_parent"
     android:layout_height="wrap_content" >
 
     <RelativeLayout
+        style="@style/ListItem"
         android:layout_width="fill_parent"
-        android:layout_height="140dip"
-        android:paddingBottom="2dip"
-        android:paddingLeft="6dip"
-        android:paddingRight="6dip"
-        android:paddingTop="2dip" >
+        android:layout_height="140dip" >
 
         <TextView
             android:id="@+id/name"
@@ -19,7 +17,6 @@
             android:layout_alignParentTop="true"
             android:ellipsize="marquee"
             android:singleLine="true"
-            android:text="title"
             android:textAppearance="?android:attr/textAppearanceLarge" />
 
         <TextView
@@ -29,7 +26,6 @@
             android:layout_alignParentLeft="true"
             android:layout_below="@id/name"
             android:singleLine="true"
-            android:text="imei"
             android:textAppearance="?android:attr/textAppearanceSmall" />
 
         <TextView
@@ -38,7 +34,6 @@
             android:layout_height="wrap_content"
             android:layout_alignParentLeft="true"
             android:layout_below="@id/imei"
-            android:text="coordinates"
             android:textAppearance="?android:attr/textAppearanceSmall" />
 
         <TextView
@@ -46,16 +41,14 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentLeft="true"
-            android:layout_below="@id/coordinates"
-            android:text="speed" />
+            android:layout_below="@id/coordinates" />
 
         <TextView
             android:id="@+id/distance"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentLeft="true"
-            android:layout_below="@id/speed"
-            android:text="distance" />
+            android:layout_below="@id/speed" />
 
         <TextView
             android:id="@+id/modified"
@@ -64,8 +57,7 @@
             android:layout_alignParentBottom="true"
             android:layout_alignParentRight="true"
             android:gravity="right"
-            android:singleLine="true"
-            android:text="modified" />
+            android:singleLine="true" />
 
         <TextView
             android:id="@+id/battery"
@@ -74,8 +66,7 @@
             android:layout_above="@id/modified"
             android:layout_alignParentRight="true"
             android:gravity="right"
-            android:singleLine="true"
-            android:text="battery" />
+            android:singleLine="true" />
 
         <TextView
             android:id="@+id/signal"
@@ -84,8 +75,7 @@
             android:layout_above="@id/battery"
             android:layout_alignParentRight="true"
             android:gravity="right"
-            android:singleLine="true"
-            android:text="signal" />
+            android:singleLine="true" />
     </RelativeLayout>
 
 </FrameLayout>

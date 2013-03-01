@@ -96,6 +96,7 @@ public class TrackerList extends ListActivity implements OnSharedPreferenceChang
 	public void onCreate(final Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
+		setContentView(R.layout.list_with_empty_view);
 
 		TextView emptyView = (TextView) getListView().getEmptyView();
 		if (emptyView != null)
