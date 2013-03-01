@@ -21,6 +21,9 @@
     <string name="menu_remove">Remove</string>
     <string name="pref_settings_title">Settings</string>
     <string name="pref_tracker_title">Trackers</string>
+    <string name="pref_tracker_notifications_title">Notifications</string>
+    <string name="pref_tracker_concealsms_title">Conceal text messages</string>
     <string name="pref_tracker_markercolor_title">Marker color</string>
+    <string name="notif_text">New data from %s was received</string>
 
 </resources>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <bool name="def_notifications">true</bool>
+    <bool name="def_concealsms">true</bool>
+    
+</resources>

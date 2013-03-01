@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    android:title="@string/pref_settings_title" >
+
+    <SwitchPreference
+        android:defaultValue="@bool/def_notifications"
+        android:key="@string/pref_tracker_notifications"
+        android:title="@string/pref_tracker_notifications_title" />
+    <CheckBoxPreference
+        android:defaultValue="@bool/def_concealsms"
+        android:key="@string/pref_tracker_concealsms"
+        android:title="@string/pref_tracker_concealsms_title" />
+
+    <com.androzic.ui.ColorPreference
+        android:defaultValue="@color/marker"
+        android:dialogTitle="@string/pref_tracker_markercolor_title"
+        android:key="@string/pref_tracker_markercolor"
+        android:title="@string/pref_tracker_markercolor_title" />
+
+</PreferenceScreen>
