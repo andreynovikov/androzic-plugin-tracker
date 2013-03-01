@@ -123,38 +123,43 @@ class TrackerDataAccess extends SQLiteOpenHelper
 
 		SQLiteDatabase db = getWritableDatabase();
 
+		Tracker dbTracker = getTracker(tracker.imei);
+		if (dbTracker != null)
+		{
+			// Preserve user defined properties
+			if ("".equals(tracker.name))
+				tracker.name = dbTracker.name;
+			if ("".equals(tracker.image))
+				tracker.image = dbTracker.image;
+			
+			// Copy tracker id
+			tracker._id = dbTracker._id;
+		}
+		
+		// Set default name for new tracker
+		if ("".equals(tracker.name))
+			tracker.name = tracker.imei;
+			
 		ContentValues values = new ContentValues();
 		values.put(TITLE, tracker.name);
+		values.put(ICON, tracker.image);
 		values.put(IMEI, tracker.imei);
 		values.put(LATITUDE, tracker.latitude);
 		values.put(LONGITUDE, tracker.longitude);
 		values.put(SPEED, tracker.speed);
 		values.put(BATTERY, tracker.battery);
 		values.put(SIGNAL, tracker.signal);
-		values.put(ICON, tracker.image);
 		values.put(MODIFIED, Long.valueOf(tracker.modified));
 
-		long id;
-
-		Cursor cursor = db.query(TrackerDataAccess.TABLE_NAME, columnsId, IMEI + " = ?", new String[] { tracker.imei }, null, null, null);
-		if (cursor.getCount() > 0)
+		if (tracker._id > 0)
 		{
-			cursor.moveToFirst();
-			id = cursor.getLong(cursor.getColumnIndex(_ID));
-			cursor.close();
-			db.update(TrackerDataAccess.TABLE_NAME, values, _ID + " = ?", new String[] { String.valueOf(id) });
+			db.update(TrackerDataAccess.TABLE_NAME, values, _ID + " = ?", new String[] { String.valueOf(tracker._id) });
 		}
 		else
 		{
-			if ("".equals(tracker.name))
-			{
-				tracker.name = tracker.imei;
-				values.put(TITLE, tracker.name);
-			}
-			id = db.insert(TrackerDataAccess.TABLE_NAME, null, values);
+			tracker._id = db.insert(TrackerDataAccess.TABLE_NAME, null, values);
 		}
-		tracker._id = id;
-		return id;
+		return tracker._id;
 	}
 
 	public void removeTracker(Tracker tracker)
