@@ -185,7 +185,7 @@ public class SMSReceiver extends BroadcastReceiver
 				NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
 				builder.setContentTitle(context.getString(R.string.app_name));
 				builder.setContentText(msg);
-				PendingIntent contentIntent = PendingIntent.getBroadcast(context, 0, i, PendingIntent.FLAG_ONE_SHOT);
+				PendingIntent contentIntent = PendingIntent.getBroadcast(context, (int) tracker._id, i, PendingIntent.FLAG_ONE_SHOT);
 				builder.setContentIntent(contentIntent);
 				builder.setSmallIcon(R.drawable.ic_stat_tracker);
 				builder.setTicker(msg);
