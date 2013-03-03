@@ -161,7 +161,7 @@ public class TrackerProperties extends Activity
 			dataAccess.saveTracker(tracker);
 			try
 			{
-				application.sendMapObject(tracker);
+				application.sendMapObject(dataAccess, tracker);
 			}
 			catch (RemoteException e)
 			{

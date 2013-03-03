@@ -25,7 +25,11 @@ public class Tracker extends MapObject
 	public static final int LEVEL_UNKNOWN = -1;
 	public static final int LEVEL_LOW = Integer.MIN_VALUE;
 	public static final int LEVEL_FULL = Integer.MAX_VALUE;
-	
+
+	/**
+	 * Map object ID (mapping ID to Androzic map objects)
+	 */
+	public long moid;
 	public double speed;
 	public long modified;
 	/**
@@ -43,6 +47,7 @@ public class Tracker extends MapObject
 		super();
 		speed = 0;
 		modified = 0;
+		moid = Long.MIN_VALUE;
 		battery = LEVEL_UNKNOWN;
 		signal = LEVEL_UNKNOWN;
 	}

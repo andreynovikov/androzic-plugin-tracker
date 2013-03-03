@@ -267,7 +267,8 @@ public class TrackerList extends ListActivity
 				if (!"fake".equals(currentLocation.getProvider()))
 				{
 					double dist = Geo.distance(tracker.latitude, tracker.longitude, currentLocation.getLatitude(), currentLocation.getLongitude());
-					distance = StringFormatter.distanceH(dist);
+					double bearing = Geo.bearing(currentLocation.getLatitude(), currentLocation.getLongitude(), tracker.latitude, tracker.longitude);
+					distance = StringFormatter.distanceH(dist) + " " + StringFormatter.bearingSimpleH(bearing);
 				}
 			}
 		    t = (TextView) view.findViewById(R.id.distance);
@@ -332,10 +333,9 @@ public class TrackerList extends ListActivity
 						Intent intent = new Intent();
 						intent.setClassName(service.serviceInfo.packageName, service.serviceInfo.name);
 						intent.setAction(BaseNavigationService.NAVIGATE_MAPOBJECT_WITH_ID);
-						long id = application.getTrackerId(tracker.imei);
-						intent.putExtra(BaseNavigationService.EXTRA_ID, id);
+						intent.putExtra(BaseNavigationService.EXTRA_ID, tracker.moid);
 						// This should not happen but let us check
-						if (id > 0)
+						if (tracker.moid > 0)
 							startService(intent);
 					}
 					finish();
@@ -344,16 +344,16 @@ public class TrackerList extends ListActivity
 					startActivityForResult(new Intent(TrackerList.this, TrackerProperties.class).putExtra("imei", tracker.imei), 0);
 	    	        break;
 	    		case qaTrackerDelete:
-	    			dataAccess.removeTracker(tracker);
 	    			try
 					{
-						application.removeMapObject(tracker);
+						application.removeMapObject(dataAccess, tracker);
 					}
 					catch (RemoteException e)
 					{
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
+	    			dataAccess.removeTracker(tracker);
 	    			updateData();
 	    			break;
 	    	}

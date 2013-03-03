@@ -20,8 +20,8 @@
 
 package com.androzic.plugin.tracker;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 
 import android.content.ContentProviderClient;
 import android.content.ContentUris;
@@ -41,26 +41,14 @@ import com.androzic.provider.DataContract;
 
 public class Application extends BaseApplication
 {
-	private Map<String, Long> mapObjectIds = new HashMap<String, Long>();
-
 	int markerColor = Color.BLUE;
-
-
-	/**
-	 * Returns Androzic map object ID
-	 */
-	public long getTrackerId(String imei)
-	{
-		Long id = mapObjectIds.get(imei);
-		return id != null ? id.longValue() : -1;
-	}
 
 	/**
 	 * Sends tracker to Androzic map
 	 * 
 	 * @throws RemoteException
 	 */
-	void sendMapObject(Tracker tracker) throws RemoteException
+	void sendMapObject(TrackerDataAccess dataAccess, Tracker tracker) throws RemoteException
 	{
 		ContentProviderClient contentProvider = getContentResolver().acquireContentProviderClient(DataContract.MAPOBJECTS_URI);
 		ContentValues values = new ContentValues();
@@ -69,23 +57,20 @@ public class Application extends BaseApplication
 		values.put(DataContract.MAPOBJECT_COLUMNS[DataContract.MAPOBJECT_NAME_COLUMN], tracker.name);
 		values.put(DataContract.MAPOBJECT_COLUMNS[DataContract.MAPOBJECT_IMAGE_COLUMN], tracker.image);
 		values.put(DataContract.MAPOBJECT_COLUMNS[DataContract.MAPOBJECT_BACKCOLOR_COLUMN], markerColor);
-		synchronized (mapObjectIds)
+
+		if (tracker.moid <= 0)
 		{
-			Long id = mapObjectIds.get(tracker.imei);
-			if (id == null)
+			Uri uri = contentProvider.insert(DataContract.MAPOBJECTS_URI, values);
+			if (uri != null)
 			{
-				Uri uri = contentProvider.insert(DataContract.MAPOBJECTS_URI, values);
-				if (uri != null)
-				{
-					id = ContentUris.parseId(uri);
-					mapObjectIds.put(tracker.imei, id);
-				}
+				tracker.moid = ContentUris.parseId(uri);
+				dataAccess.saveTracker(tracker);
 			}
-			else
-			{
-				Uri uri = ContentUris.withAppendedId(DataContract.MAPOBJECTS_URI, id);
-				contentProvider.update(uri, values, null, null);
-			}
+		}
+		else
+		{
+			Uri uri = ContentUris.withAppendedId(DataContract.MAPOBJECTS_URI, tracker.moid);
+			contentProvider.update(uri, values, null, null);
 		}
 		contentProvider.release();
 	}
@@ -97,23 +82,20 @@ public class Application extends BaseApplication
 	 */
 	void sendMapObjects() throws RemoteException
 	{
-		synchronized (mapObjectIds)
+		TrackerDataAccess dataAccess = new TrackerDataAccess(this);
+		Cursor cursor = dataAccess.getTrackers();
+		if (!cursor.moveToFirst())
 		{
-			TrackerDataAccess dataAccess = new TrackerDataAccess(this);
-			Cursor cursor = dataAccess.getTrackers();
-			if (!cursor.moveToFirst())
-			{
-				dataAccess.close();
-				return;
-			}
-			do
-			{
-				Tracker tracker = dataAccess.getTracker(cursor);
-				sendMapObject(tracker);
-			}
-			while (cursor.moveToNext());
 			dataAccess.close();
+			return;
 		}
+		do
+		{
+			Tracker tracker = dataAccess.getTracker(cursor);
+			sendMapObject(dataAccess, tracker);
+		}
+		while (cursor.moveToNext());
+		dataAccess.close();
 	}
 
 	/**
@@ -121,19 +103,16 @@ public class Application extends BaseApplication
 	 * 
 	 * @throws RemoteException
 	 */
-	void removeMapObject(Tracker tracker) throws RemoteException
+	void removeMapObject(TrackerDataAccess dataAccess, Tracker tracker) throws RemoteException
 	{
-		synchronized (mapObjectIds)
-		{
-			Long id = mapObjectIds.get(tracker.imei);
-			if (id == null)
-				return;
-			mapObjectIds.remove(tracker.imei);
-			ContentProviderClient contentProvider = getContentResolver().acquireContentProviderClient(DataContract.MAPOBJECTS_URI);
-			Uri uri = ContentUris.withAppendedId(DataContract.MAPOBJECTS_URI, id);
-			contentProvider.delete(uri, null, null);
-			contentProvider.release();
-		}
+		if (tracker.moid <= 0)
+			return;
+		ContentProviderClient contentProvider = getContentResolver().acquireContentProviderClient(DataContract.MAPOBJECTS_URI);
+		Uri uri = ContentUris.withAppendedId(DataContract.MAPOBJECTS_URI, tracker.moid);
+		tracker.moid = 0;
+		dataAccess.saveTracker(tracker);
+		contentProvider.delete(uri, null, null);
+		contentProvider.release();
 	}
 
 	/**
@@ -143,19 +122,35 @@ public class Application extends BaseApplication
 	 */
 	void removeMapObjects() throws RemoteException
 	{
-		ContentProviderClient contentProvider = getContentResolver().acquireContentProviderClient(DataContract.MAPOBJECTS_URI);
-		synchronized (mapObjectIds)
+		TrackerDataAccess dataAccess = new TrackerDataAccess(this);
+		Cursor cursor = dataAccess.getTrackers();
+		if (!cursor.moveToFirst())
 		{
-			String[] args = new String[mapObjectIds.size()];
-			int i = 0;
-			for (Map.Entry<String, Long> entry : mapObjectIds.entrySet())
-			{
-				args[i] = String.valueOf(entry.getValue());
-				i++;
-			}
-			mapObjectIds.clear();
-			contentProvider.delete(DataContract.MAPOBJECTS_URI, DataContract.MAPOBJECT_ID_SELECTION, args);
+			dataAccess.close();
+			return;
 		}
+		Set<Long> moids = new HashSet<Long>();
+		do
+		{
+			Tracker tracker = dataAccess.getTracker(cursor);
+			if (tracker.moid > 0)
+			{
+				moids.add(tracker.moid);
+				tracker.moid = 0;
+				dataAccess.saveTracker(tracker);
+			}
+		}
+		while (cursor.moveToNext());
+
+		ContentProviderClient contentProvider = getContentResolver().acquireContentProviderClient(DataContract.MAPOBJECTS_URI);
+		String[] args = new String[moids.size()];
+		int i = 0;
+		for (Long moid : moids)
+		{
+			args[i] = String.valueOf(moid);
+			i++;
+		}
+		contentProvider.delete(DataContract.MAPOBJECTS_URI, DataContract.MAPOBJECT_ID_SELECTION, args);
 		contentProvider.release();
 	}
 

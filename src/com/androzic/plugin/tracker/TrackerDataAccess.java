@@ -45,6 +45,13 @@ class TrackerDataAccess extends SQLiteOpenHelper
 	 */
 	public static final String _ID = "_id";
 	/**
+	 * Map object ID (mapping ID to Androzic map objects)
+	 * <P>
+	 * Type: LONG
+	 * </P>
+	 */
+	public static final String MOID = "moid";
+	/**
 	 * Title
 	 * <P>
 	 * Type: TEXT
@@ -109,7 +116,7 @@ class TrackerDataAccess extends SQLiteOpenHelper
 	public static final String MODIFIED = "modified";
 
 	private static final String[] columnsId = new String[] { _ID };
-	private static final String[] columnsAll = new String[] { _ID, TITLE, ICON, IMEI, LATITUDE, LONGITUDE, SPEED, BATTERY, SIGNAL, MODIFIED };
+	private static final String[] columnsAll = new String[] { _ID, MOID, TITLE, ICON, IMEI, LATITUDE, LONGITUDE, SPEED, BATTERY, SIGNAL, MODIFIED };
 
 	TrackerDataAccess(Context context)
 	{
@@ -131,8 +138,12 @@ class TrackerDataAccess extends SQLiteOpenHelper
 				tracker.name = dbTracker.name;
 			if ("".equals(tracker.image))
 				tracker.image = dbTracker.image;
-			
-			// Copy tracker id
+
+			// Preserve map object ID if it is no set
+			if (tracker.moid == Long.MIN_VALUE)
+				tracker.moid = dbTracker.moid;
+
+			// Copy tracker ID
 			tracker._id = dbTracker._id;
 		}
 		
@@ -141,6 +152,7 @@ class TrackerDataAccess extends SQLiteOpenHelper
 			tracker.name = tracker.imei;
 			
 		ContentValues values = new ContentValues();
+		values.put(MOID, tracker.moid);
 		values.put(TITLE, tracker.name);
 		values.put(ICON, tracker.image);
 		values.put(IMEI, tracker.imei);
@@ -193,6 +205,7 @@ class TrackerDataAccess extends SQLiteOpenHelper
 	{
 		Tracker tracker = new Tracker();
 		tracker._id = cursor.getLong(cursor.getColumnIndex(_ID));
+		tracker.moid = cursor.getLong(cursor.getColumnIndex(MOID));
 		tracker.latitude = cursor.getDouble(cursor.getColumnIndex(LATITUDE));
 		tracker.longitude = cursor.getDouble(cursor.getColumnIndex(LONGITUDE));
 		tracker.speed = cursor.getFloat(cursor.getColumnIndex(SPEED));
@@ -214,7 +227,7 @@ class TrackerDataAccess extends SQLiteOpenHelper
 	@Override
 	public void onCreate(SQLiteDatabase db)
 	{
-		db.execSQL("CREATE TABLE " + TABLE_NAME + " (" + _ID + " INTEGER PRIMARY KEY," + IMEI + " TEXT," + TITLE + " TEXT," + ICON + " TEXT," + LATITUDE + " REAL," + LONGITUDE + " REAL," + SPEED + " REAL," + BATTERY + " INTEGER," + SIGNAL + " INTEGER," + MODIFIED + " INTEGER" + ");");
+		db.execSQL("CREATE TABLE " + TABLE_NAME + " (" + _ID + " INTEGER PRIMARY KEY," + MOID + " INTEGER," + IMEI + " TEXT NOT NULL UNIQUE," + TITLE + " TEXT," + ICON + " TEXT," + LATITUDE + " REAL," + LONGITUDE + " REAL," + SPEED + " REAL," + BATTERY + " INTEGER," + SIGNAL + " INTEGER," + MODIFIED + " INTEGER" + ");");
 	}
 
 	@Override

@@ -125,17 +125,17 @@ public class SMSReceiver extends BroadcastReceiver
 			// Save tracker data
 			TrackerDataAccess dataAccess = new TrackerDataAccess(context);
 			dataAccess.saveTracker(tracker);
-			dataAccess.close();
 			try
 			{
 				Application application = Application.getApplication();
-				application.sendMapObject(tracker);
+				application.sendMapObject(dataAccess, tracker);
 			}
 			catch (RemoteException e)
 			{
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+			dataAccess.close();
 			
 			SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
 
