@@ -41,6 +41,8 @@ import com.androzic.provider.DataContract;
 
 public class Application extends BaseApplication
 {
+	public static final String TRACKER_DATE_RECEIVED_BROADCAST = "com.androzic.plugin.tracker.TRACKER_DATA_RECEIVED";
+	
 	int markerColor = Color.BLUE;
 
 	/**

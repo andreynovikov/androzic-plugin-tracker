@@ -137,6 +137,8 @@ public class SMSReceiver extends BroadcastReceiver
 			}
 			dataAccess.close();
 			
+			context.sendBroadcast(new Intent(Application.TRACKER_DATE_RECEIVED_BROADCAST));
+			
 			SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
 
 			// Show notification

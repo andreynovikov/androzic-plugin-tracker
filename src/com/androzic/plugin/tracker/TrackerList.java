@@ -1,21 +1,21 @@
 /*
  * Androzic - android navigation client that uses OziExplorer maps (ozf2, ozfx3).
- * Copyright (C) 2010-2013  Andrey Novikov <http://andreynovikov.info/>
- *
+ * Copyright (C) 2010-2013 Andrey Novikov <http://andreynovikov.info/>
+ * 
  * This file is part of Androzic application.
- *
+ * 
  * Androzic is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
-
+ * 
  * Androzic is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
-
+ * 
  * You should have received a copy of the GNU General Public License
- * along with Androzic.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Androzic. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package com.androzic.plugin.tracker;
@@ -28,10 +28,12 @@ import net.londatiga.android.ActionItem;
 import net.londatiga.android.QuickAction;
 import net.londatiga.android.QuickAction.OnActionItemClickListener;
 import android.app.ListActivity;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.ContentProviderClient;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
@@ -70,7 +72,7 @@ public class TrackerList extends ListActivity
 {
 	private static final String TAG = "TrackerList";
 	private TrackerDataAccess dataAccess;
-	
+
 	private TrackerListAdapter adapter;
 
 	private ILocationRemoteService locationService = null;
@@ -84,8 +86,8 @@ public class TrackerList extends ListActivity
 	private static final int qaTrackerNavigate = 2;
 	private static final int qaTrackerEdit = 3;
 	private static final int qaTrackerDelete = 4;
-	
-    private QuickAction quickAction;
+
+	private QuickAction quickAction;
 	private int selectedPosition;
 	private Drawable selectedBackground;
 
@@ -110,7 +112,7 @@ public class TrackerList extends ListActivity
 		quickAction.addActionItem(new ActionItem(qaTrackerDelete, getString(R.string.menu_delete), resources.getDrawable(R.drawable.ic_action_trash)));
 
 		quickAction.setOnActionItemClickListener(trackerActionItemClickListener);
-		quickAction.setOnDismissListener(new PopupWindow.OnDismissListener() {			
+		quickAction.setOnDismissListener(new PopupWindow.OnDismissListener() {
 			@Override
 			public void onDismiss()
 			{
@@ -126,7 +128,7 @@ public class TrackerList extends ListActivity
 		// Create database connection
 		dataAccess = new TrackerDataAccess(this);
 		Cursor cursor = dataAccess.getTrackers();
-		
+
 		// Bind list adapter
 		adapter = new TrackerListAdapter(this, cursor);
 		setListAdapter(adapter);
@@ -139,22 +141,32 @@ public class TrackerList extends ListActivity
 	public void onResume()
 	{
 		super.onResume();
+		registerReceiver(receiver, new IntentFilter(Application.TRACKER_DATE_RECEIVED_BROADCAST));
 	}
 
 	@Override
 	public void onPause()
 	{
 		super.onPause();
+		try
+		{
+			unregisterReceiver(receiver);
+		}
+		catch (IllegalArgumentException e)
+		{
+			// ignore - it is thrown if receiver is not registered but it can not be
+			// true in normal conditions
+		}
 	}
 
 	@Override
 	public void onDestroy()
 	{
 		super.onDestroy();
-		
+
 		// Disconnect from location service
 		disconnect();
-		
+
 		// Close database connection
 		adapter.getCursor().close();
 		dataAccess.close();
@@ -189,7 +201,7 @@ public class TrackerList extends ListActivity
 		v.setBackgroundResource(R.drawable.list_selector_background_focus);
 		quickAction.show(v);
 	}
-	
+
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data)
 	{
@@ -217,9 +229,11 @@ public class TrackerList extends ListActivity
 			locationService = null;
 		}
 	}
-	
+
 	private void updateData()
 	{
+		if (adapter == null)
+			return;
 		Cursor cursor = (Cursor) adapter.getItem(selectedPosition);
 		// TODO Change to obtaining new cursor
 		cursor.requery();
@@ -242,25 +256,25 @@ public class TrackerList extends ListActivity
 		public void bindView(View view, Context context, Cursor cursor)
 		{
 			Tracker tracker = dataAccess.getTracker(cursor);
-		    TextView t = (TextView) view.findViewById(R.id.name);
-		    t.setText(tracker.name);
+			TextView t = (TextView) view.findViewById(R.id.name);
+			t.setText(tracker.name);
 			Application application = Application.getApplication();
-		    Bitmap b = application.getIcon(tracker.image);
-		    if (b != null)
-		    {
-			    Drawable drawable = new BitmapDrawable(getResources(), b);
+			Bitmap b = application.getIcon(tracker.image);
+			if (b != null)
+			{
+				Drawable drawable = new BitmapDrawable(getResources(), b);
 				drawable.setBounds(0, 0, b.getWidth(), b.getHeight());
-		    	t.setCompoundDrawables(drawable, null, null, null);
-		    	t.setCompoundDrawablePadding(b.getWidth() / 5);
-		    }
-		    t = (TextView) view.findViewById(R.id.imei);
-		    t.setText(tracker.imei);
+				t.setCompoundDrawables(drawable, null, null, null);
+				t.setCompoundDrawablePadding(b.getWidth() / 5);
+			}
+			t = (TextView) view.findViewById(R.id.imei);
+			t.setText(tracker.imei);
 			String coordinates = StringFormatter.coordinates(coordinatesFormat, " ", tracker.latitude, tracker.longitude);
-		    t = (TextView) view.findViewById(R.id.coordinates);
-		    t.setText(coordinates);
-		    String speed = String.valueOf(Math.round(tracker.speed * speedFactor)) + " " + speedAbbr;
-		    t = (TextView) view.findViewById(R.id.speed);
-		    t.setText(speed);
+			t = (TextView) view.findViewById(R.id.coordinates);
+			t.setText(coordinates);
+			String speed = String.valueOf(Math.round(tracker.speed * speedFactor)) + " " + speedAbbr;
+			t = (TextView) view.findViewById(R.id.speed);
+			t.setText(speed);
 			String distance = "";
 			synchronized (currentLocation)
 			{
@@ -271,57 +285,57 @@ public class TrackerList extends ListActivity
 					distance = StringFormatter.distanceH(dist) + " " + StringFormatter.bearingSimpleH(bearing);
 				}
 			}
-		    t = (TextView) view.findViewById(R.id.distance);
-		    t.setText(distance);
-		    String battery = "";
-		    if (tracker.battery == Integer.MAX_VALUE)
-		    	battery = getString(R.string.full);
-		    if (tracker.battery == Integer.MIN_VALUE)
-		    	battery = getString(R.string.low);
-		    if (tracker.battery >=0 && tracker.battery <= 100)
-		    	battery = String.valueOf(tracker.battery) + "%";
-		    t = (TextView) view.findViewById(R.id.battery);
-		    t.setText(String.format("%s: %s", getString(R.string.battery), battery));
-		    String signal = "";
-		    if (tracker.signal == Integer.MAX_VALUE)
-		    	signal = getString(R.string.full);
-		    if (tracker.signal == Integer.MIN_VALUE)
-		    	signal = getString(R.string.low);
-		    if (tracker.signal >=0 && tracker.signal <= 100)
-		    	signal = String.valueOf(tracker.signal) + "%";
-		    t = (TextView) view.findViewById(R.id.signal);
-		    t.setText(String.format("%s: %s", getString(R.string.signal), signal));
-		    Calendar calendar = Calendar.getInstance();
-		    calendar.setTimeInMillis(tracker.modified);
-		    Date date = calendar.getTime();
-		    String modified = DateFormat.getDateFormat(TrackerList.this).format(date)+" "+DateFormat.getTimeFormat(TrackerList.this).format(date);
-		    t = (TextView) view.findViewById(R.id.modified);
-		    t.setText(modified);
+			t = (TextView) view.findViewById(R.id.distance);
+			t.setText(distance);
+			String battery = "";
+			if (tracker.battery == Integer.MAX_VALUE)
+				battery = getString(R.string.full);
+			if (tracker.battery == Integer.MIN_VALUE)
+				battery = getString(R.string.low);
+			if (tracker.battery >= 0 && tracker.battery <= 100)
+				battery = String.valueOf(tracker.battery) + "%";
+			t = (TextView) view.findViewById(R.id.battery);
+			t.setText(String.format("%s: %s", getString(R.string.battery), battery));
+			String signal = "";
+			if (tracker.signal == Integer.MAX_VALUE)
+				signal = getString(R.string.full);
+			if (tracker.signal == Integer.MIN_VALUE)
+				signal = getString(R.string.low);
+			if (tracker.signal >= 0 && tracker.signal <= 100)
+				signal = String.valueOf(tracker.signal) + "%";
+			t = (TextView) view.findViewById(R.id.signal);
+			t.setText(String.format("%s: %s", getString(R.string.signal), signal));
+			Calendar calendar = Calendar.getInstance();
+			calendar.setTimeInMillis(tracker.modified);
+			Date date = calendar.getTime();
+			String modified = DateFormat.getDateFormat(TrackerList.this).format(date) + " " + DateFormat.getTimeFormat(TrackerList.this).format(date);
+			t = (TextView) view.findViewById(R.id.modified);
+			t.setText(modified);
 		}
-		 
+
 		@Override
 		public View newView(Context context, Cursor cursor, ViewGroup parent)
 		{
-		    return mInflater.inflate(mItemLayout, parent, false);
+			return mInflater.inflate(mItemLayout, parent, false);
 		}
 	}
-	
-	private OnActionItemClickListener trackerActionItemClickListener = new OnActionItemClickListener(){
+
+	private OnActionItemClickListener trackerActionItemClickListener = new OnActionItemClickListener() {
 		@Override
 		public void onItemClick(QuickAction source, int pos, int actionId)
 		{
 			Application application = (Application) getApplication();
 			Cursor cursor = (Cursor) adapter.getItem(selectedPosition);
 			Tracker tracker = dataAccess.getTracker(cursor);
-	
-	    	switch (actionId)
-	    	{
-	    		case qaTrackerVisible:
-	    			Log.d(TAG, "Passing coordinates to Androzic");
-	    			Intent i = new Intent("com.androzic.CENTER_ON_COORDINATES");
-	    			i.putExtra("lat", tracker.latitude);
-	    			i.putExtra("lon", tracker.longitude);
-	    			sendBroadcast(i);
+
+			switch (actionId)
+			{
+				case qaTrackerVisible:
+					Log.d(TAG, "Passing coordinates to Androzic");
+					Intent i = new Intent("com.androzic.CENTER_ON_COORDINATES");
+					i.putExtra("lat", tracker.latitude);
+					i.putExtra("lon", tracker.longitude);
+					sendBroadcast(i);
 					break;
 				case qaTrackerNavigate:
 					PackageManager packageManager = getPackageManager();
@@ -340,11 +354,11 @@ public class TrackerList extends ListActivity
 					}
 					finish();
 					break;
-	    		case qaTrackerEdit:
+				case qaTrackerEdit:
 					startActivityForResult(new Intent(TrackerList.this, TrackerProperties.class).putExtra("imei", tracker.imei), 0);
-	    	        break;
-	    		case qaTrackerDelete:
-	    			try
+					break;
+				case qaTrackerDelete:
+					try
 					{
 						application.removeMapObject(dataAccess, tracker);
 					}
@@ -353,10 +367,10 @@ public class TrackerList extends ListActivity
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
-	    			dataAccess.removeTracker(tracker);
-	    			updateData();
-	    			break;
-	    	}
+					dataAccess.removeTracker(tracker);
+					updateData();
+					break;
+			}
 		}
 	};
 
@@ -367,8 +381,8 @@ public class TrackerList extends ListActivity
 
 		// Setup preference items we want to read (order is important - it
 		// should correlate with the read order later in code)
-		int[] fields = new int[] { PreferencesContract.COORDINATES_FORMAT, PreferencesContract.SPEED_FACTOR, PreferencesContract.SPEED_ABBREVIATION, PreferencesContract.DISTANCE_FACTOR, PreferencesContract.DISTANCE_ABBREVIATION,
-				PreferencesContract.DISTANCE_SHORT_FACTOR, PreferencesContract.DISTANCE_SHORT_ABBREVIATION };
+		int[] fields = new int[] { PreferencesContract.COORDINATES_FORMAT, PreferencesContract.SPEED_FACTOR, PreferencesContract.SPEED_ABBREVIATION, PreferencesContract.DISTANCE_FACTOR,
+				PreferencesContract.DISTANCE_ABBREVIATION, PreferencesContract.DISTANCE_SHORT_FACTOR, PreferencesContract.DISTANCE_SHORT_ABBREVIATION };
 		// Convert them to strings
 		String[] args = new String[fields.length];
 		for (int i = 0; i < fields.length; i++)
@@ -402,6 +416,18 @@ public class TrackerList extends ListActivity
 		// Notify that the binding is not required anymore
 		client.release();
 	}
+
+	private BroadcastReceiver receiver = new BroadcastReceiver() {
+		@Override
+		public void onReceive(Context context, Intent intent)
+		{
+			String action = intent.getAction();
+			if (action.equals(Application.TRACKER_DATE_RECEIVED_BROADCAST))
+			{
+				updateData();
+			}
+		}
+	};
 
 	private ServiceConnection locationConnection = new ServiceConnection() {
 		public void onServiceConnected(ComponentName className, IBinder service)
