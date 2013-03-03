@@ -32,8 +32,9 @@ public class Tracker extends MapObject
 	public long moid;
 	public double speed;
 	public long modified;
+	public String message;
 	/**
-	 * Tracker battery level: LEVEL_UNKNOWN, LEVEL_LOW, LEVEL_FULL, 0-100 - percent
+	 * Tracker battery level: LEVEL_UNKNOWN, LEVEL_LOW, LEVEL_FULL, 0-100 - percent, > 100 - voltage*100
 	 */
 	public int battery;
 	/**

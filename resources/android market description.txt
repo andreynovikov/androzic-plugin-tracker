@@ -1,6 +1,6 @@
 <b>This is an Androzic plugin.</b> It requires Androzic to be installed. It receives text messages (SMS) from GPS trackers and displays its locations on Androzic map. Requires Androzic version 1.7.3 or higher.
 
-Currently supports Xexun TK-102, TK-103 trackers. May be it supports other Xexun trackes, but it is not tested.
+Currently supports Xexun TK101, TK102, TK102-2, TK201, TK201-2 trackers. May be it supports other Xexun trackes and its many clones, but it is not tested.
 
 Plugin can show notifications when a new text message from a tracker is received.
 
