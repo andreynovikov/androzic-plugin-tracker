@@ -60,8 +60,7 @@ public class SMSReceiver extends BroadcastReceiver
 		if (extras == null)
 			return;
 
-		Tracker tracker = new Tracker();
-
+		StringBuilder messageBuilder = new StringBuilder();
 		Object[] pdus = (Object[]) extras.get("pdus");
 		for (int i = 0; i < pdus.length; i++)
 		{
@@ -69,80 +68,88 @@ public class SMSReceiver extends BroadcastReceiver
 			String text = msg.getMessageBody();
 			if (text == null)
 				continue;
-
-			Log.i(TAG, "SMS: " + text);
-			// Xexun family and some clones
-			// lat:55.950468 long:035.867116 speed: 000.0 24/11/12 08:54 bat:F signal:F imei:358948010446647
-			// lat: 123.345678N long: 0.125621W speed: 001.2 17/07/11 21:34 F:3.92V,1,Signal:F help me imei:123456789012 07 83.8 234 15 006B 24C4
-			// lat: 22.566901 long: 114.051258 speed: 0.00 14/08/09 06.54 F:3.85V,1,Signal:F help me imei:354776031555474 05 43.5 460 01 2533 720B
-			// help me! lat:123.45678 long:001.23456 speed:090.00 T:17/01/11 15:14 Bat:25% Signal:F imei:1234567
-
-			// http://fiddle.re/fpfa6
-			Pattern pattern = Pattern.compile("(.*)?\\s?lat:\\s?([^\\s]+)\\slong:\\s?([^\\s]+)\\sspeed:\\s?([\\d\\.]+)\\s(?:T:)?([\\d/:\\.\\s]+)\\s(?:bat:([^\\s]+)\\s|F:([\\d\\.]+)V,\\d,)signal:([^\\s]+)\\s(.*)?\\s?imei:(\\d+)", Pattern.CASE_INSENSITIVE);
-			Matcher m = pattern.matcher(text);
-			if (m.matches())
-			{
-				String latitude = m.group(2);
-				String longitude = m.group(3);
-				try
-				{
-					tracker.speed = Double.parseDouble(m.group(4)) / 3.6;
-				}
-				catch (NumberFormatException ignore)
-				{
-				}
-
-				String time = m.group(5);
-				try
-				{
-					Date date = XexunDateFormatter.parse(time);
-					tracker.modified = date.getTime();
-				}
-				catch (Exception e)
-				{
-					Log.e(TAG, "Date error", e);
-				}
-
-				String battery = m.group(6);
-				if ("F".equals(battery))
-					tracker.battery = Tracker.LEVEL_FULL;
-				if ("L".equals(battery))
-					tracker.battery = Tracker.LEVEL_LOW;
-				try
-				{
-					if (battery.endsWith("%"))
-						tracker.battery = Integer.parseInt(battery.substring(0, battery.length() - 1));
-					if (realNumber.matcher(battery).matches())
-						tracker.battery = (int) (Float.parseFloat(battery) * 100);
-				}
-				catch (NumberFormatException ignore)
-				{
-				}
-
-				String signal = m.group(7);
-				if ("F".equals(signal))
-					tracker.signal = Tracker.LEVEL_FULL;
-				if ("L".equals(signal) || "0".equals(signal))
-					tracker.signal = Tracker.LEVEL_LOW;
-
-				tracker.imei = m.group(9);
-
-				String message = m.group(1);
-				if ("".equals(message))
-					tracker.message = message;
-				message = m.group(8);
-				if ("".equals(message))
-					tracker.message = message;
-
-				double coords[] = CoordinateParser.parse(latitude + " " + longitude);
-				if (Double.isNaN(coords[0]) || Double.isNaN(coords[1]))
-					continue;
-
-				tracker.latitude = coords[0];
-				tracker.longitude = coords[1];
-			}
+			messageBuilder.append(text);
 		}
-		if (tracker.imei != null)
+		
+		String text = messageBuilder.toString();
+		
+		Log.i(TAG, "SMS: " + text);
+		// Xexun family and some clones
+		// lat: 55.807693 long: 037.730640 speed: 000.0 03/03/13 16:18   bat:F signal:F  imei:358948010446647
+		// lat:55.950468 long:035.867116 speed: 000.0 24/11/12 08:54 bat:F signal:F imei:358948010446647
+		// lat: 123.345678N long: 0.125621W speed: 001.2 17/07/11 21:34 F:3.92V,1,Signal:F help me imei:123456789012 07 83.8 234 15 006B 24C4
+		// lat: 22.566901 long: 114.051258 speed: 0.00 14/08/09 06.54 F:3.85V,1,Signal:F help me imei:354776031555474 05 43.5 460 01 2533 720B
+		// help me! lat:123.45678 long:001.23456 speed:090.00 T:17/01/11 15:14 Bat:25% Signal:F imei:1234567
+
+		// http://fiddle.re/fpfa6
+		Pattern pattern = Pattern.compile("(.*)?\\s?lat:\\s?([^\\s]+)\\slong:\\s?([^\\s]+)\\sspeed:\\s?([\\d\\.]+)\\s(?:T:)?([\\d/:\\.\\s]+)\\s(?:bat|F):([^\\s,]+)(?:V,\\d,)?\\s?signal:([^\\s]+)\\s(.*)?\\s?imei:(\\d+)", Pattern.CASE_INSENSITIVE);
+		Matcher m = pattern.matcher(text);
+		if (! m.matches())
+			return;
+
+		Tracker tracker = new Tracker();
+			
+		String latitude = m.group(2);
+		String longitude = m.group(3);
+
+		double coords[] = CoordinateParser.parse(latitude + " " + longitude);
+		if (Double.isNaN(coords[0]) || Double.isNaN(coords[1]))
+			return;
+
+		tracker.latitude = coords[0];
+		tracker.longitude = coords[1];
+
+		try
+		{
+			tracker.speed = Double.parseDouble(m.group(4)) / 3.6;
+		}
+		catch (NumberFormatException ignore)
+		{
+		}
+
+		String time = m.group(5);
+		try
+		{
+			Date date = XexunDateFormatter.parse(time);
+			tracker.modified = date.getTime();
+		}
+		catch (Exception e)
+		{
+			Log.e(TAG, "Date error", e);
+		}
+
+		String battery = m.group(6);
+		if ("F".equals(battery))
+			tracker.battery = Tracker.LEVEL_FULL;
+		if ("L".equals(battery))
+			tracker.battery = Tracker.LEVEL_LOW;
+		try
+		{
+			if (battery.endsWith("%"))
+				tracker.battery = Integer.parseInt(battery.substring(0, battery.length() - 1));
+			if (realNumber.matcher(battery).matches())
+				tracker.battery = (int) (Float.parseFloat(battery) * 100);
+		}
+		catch (NumberFormatException ignore)
+		{
+		}
+
+		String signal = m.group(7);
+		if ("F".equals(signal))
+			tracker.signal = Tracker.LEVEL_FULL;
+		if ("L".equals(signal) || "0".equals(signal))
+			tracker.signal = Tracker.LEVEL_LOW;
+
+		tracker.imei = m.group(9);
+
+		String message = m.group(1);
+		if ("".equals(message))
+			tracker.message = message;
+		message = m.group(8);
+		if ("".equals(message))
+			tracker.message = message;
+
+		if (! "".equals(tracker.imei))
 		{
 			// Save tracker data
 			TrackerDataAccess dataAccess = new TrackerDataAccess(context);
