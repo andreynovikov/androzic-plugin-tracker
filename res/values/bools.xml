@@ -2,6 +2,7 @@
 <resources>
 
     <bool name="def_notifications">true</bool>
+    <bool name="def_vibrate">true</bool>
     <bool name="def_concealsms">true</bool>
     
 </resources>

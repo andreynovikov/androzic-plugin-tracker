@@ -159,7 +159,11 @@ public class SMSReceiver extends BroadcastReceiver
 				builder.setSmallIcon(R.drawable.ic_stat_tracker);
 				builder.setTicker(msg);
 				builder.setWhen(tracker.modified);
-				builder.setDefaults(Notification.DEFAULT_ALL);
+				int defaults = Notification.DEFAULT_LIGHTS | Notification.DEFAULT_SOUND;
+				boolean vibrate = prefs.getBoolean(context.getString(R.string.pref_tracker_vibrate), context.getResources().getBoolean(R.bool.def_vibrate));
+				if (vibrate)
+					defaults |= Notification.DEFAULT_VIBRATE;
+				builder.setDefaults(defaults);
 				builder.setAutoCancel(true);
 				Notification notification = builder.build();
 				NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);

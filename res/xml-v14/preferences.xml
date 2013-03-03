@@ -6,7 +6,13 @@
         android:defaultValue="@bool/def_notifications"
         android:key="@string/pref_tracker_notifications"
         android:title="@string/pref_tracker_notifications_title" />
-    <CheckBoxPreference
+
+    <CheckBoxPreference
+        android:defaultValue="@bool/def_vibrate"
+        android:dependency="@string/pref_tracker_notifications"
+        android:key="@string/pref_tracker_vibrate"
+        android:title="@string/pref_tracker_vibrate_title" />
+    <CheckBoxPreference
         android:defaultValue="@bool/def_concealsms"
         android:key="@string/pref_tracker_concealsms"
         android:title="@string/pref_tracker_concealsms_title" />

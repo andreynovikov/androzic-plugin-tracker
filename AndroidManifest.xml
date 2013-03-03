@@ -9,6 +9,7 @@
         android:targetSdkVersion="11" />
 
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="com.androzic.permission.RECEIVE_LOCATION" />
     <uses-permission android:name="com.androzic.permission.NAVIGATION" />
     <uses-permission android:name="com.androzic.permission.READ_PREFERENCES" />
