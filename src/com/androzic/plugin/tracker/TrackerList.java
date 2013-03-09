@@ -22,7 +22,6 @@ package com.androzic.plugin.tracker;
 
 import java.util.Calendar;
 import java.util.Date;
-import java.util.List;
 
 import net.londatiga.android.ActionItem;
 import net.londatiga.android.QuickAction;
@@ -35,8 +34,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -338,20 +335,11 @@ public class TrackerList extends ListActivity
 					sendBroadcast(i);
 					break;
 				case qaTrackerNavigate:
-					PackageManager packageManager = getPackageManager();
-					Intent serviceIntent = new Intent(BaseNavigationService.ANDROZIC_NAVIGATION_SERVICE);
-					List<ResolveInfo> services = packageManager.queryIntentServices(serviceIntent, 0);
-					if (services.size() > 0)
-					{
-						ResolveInfo service = services.get(0);
-						Intent intent = new Intent();
-						intent.setClassName(service.serviceInfo.packageName, service.serviceInfo.name);
-						intent.setAction(BaseNavigationService.NAVIGATE_MAPOBJECT_WITH_ID);
-						intent.putExtra(BaseNavigationService.EXTRA_ID, tracker.moid);
-						// This should not happen but let us check
-						if (tracker.moid > 0)
-							startService(intent);
-					}
+					Intent intent = new Intent(BaseNavigationService.NAVIGATE_MAPOBJECT_WITH_ID);
+					intent.putExtra(BaseNavigationService.EXTRA_ID, tracker.moid);
+					// This should not happen but let us check
+					if (tracker.moid > 0)
+						startService(intent);
 					finish();
 					break;
 				case qaTrackerEdit:
