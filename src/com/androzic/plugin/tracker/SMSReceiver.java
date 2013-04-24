@@ -143,11 +143,17 @@ public class SMSReceiver extends BroadcastReceiver
 		tracker.imei = m.group(9);
 
 		String message = m.group(1);
-		if ("".equals(message))
+		if (! "".equals(message))
 			tracker.message = message;
 		message = m.group(8);
-		if ("".equals(message))
+		if (! "".equals(message))
 			tracker.message = message;
+		if (tracker.message != null)
+		{
+			tracker.message = tracker.message.trim();
+			if ("".equals(tracker.message))
+				tracker.message = null;
+		}
 
 		if (! "".equals(tracker.imei))
 		{
@@ -175,7 +181,7 @@ public class SMSReceiver extends BroadcastReceiver
 			if (notifications)
 			{
 				Intent i = new Intent("com.androzic.COORDINATES_RECEIVED");
-				i.putExtra("title", tracker.name);
+				i.putExtra("title", tracker.message != null ? tracker.message : tracker.name);
 				i.putExtra("sender", tracker.name);
 				i.putExtra("origin", context.getApplicationContext().getPackageName());
 				i.putExtra("lat", tracker.latitude);
@@ -184,7 +190,10 @@ public class SMSReceiver extends BroadcastReceiver
 				String msg = context.getString(R.string.notif_text, tracker.name);
 				NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
 				builder.setContentTitle(context.getString(R.string.app_name));
-				builder.setContentText(msg);
+				if (tracker.message != null)
+					builder.setContentText(msg + ": " + tracker.message);
+				else
+					builder.setContentText(msg);
 				PendingIntent contentIntent = PendingIntent.getBroadcast(context, (int) tracker._id, i, PendingIntent.FLAG_ONE_SHOT);
 				builder.setContentIntent(contentIntent);
 				builder.setSmallIcon(R.drawable.ic_stat_tracker);
