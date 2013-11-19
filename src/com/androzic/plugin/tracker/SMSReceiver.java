@@ -51,11 +51,15 @@ public class SMSReceiver extends BroadcastReceiver
 	private static final SimpleDateFormat JointechDateFormatter = new SimpleDateFormat("MM-dd HH:mm:ss");
 	@SuppressLint("SimpleDateFormat")
 	private static final SimpleDateFormat XexunDateFormatter = new SimpleDateFormat("dd/MM/yy HH:mm");
+	@SuppressLint("SimpleDateFormat")
+	private static final SimpleDateFormat TK102Clone1DateFormatter = new SimpleDateFormat("yy/MM/dd HH:mm");
+	
 	private static final Pattern realNumber = Pattern.compile("\\d+\\.\\d+");
 
 	@Override
 	public void onReceive(Context context, Intent intent)
 	{
+		String Sender = "";
 		Log.e(TAG, "SMS received");
 
 		Bundle extras = intent.getExtras();
@@ -68,6 +72,8 @@ public class SMSReceiver extends BroadcastReceiver
 		{
 			SmsMessage msg = SmsMessage.createFromPdu((byte[]) pdus[i]);
 			String text = msg.getMessageBody();
+			Sender = msg.getDisplayOriginatingAddress();
+			Log.w(TAG, "Sender: " + Sender);
 			if (text == null)
 				continue;
 			messageBuilder.append(text);
@@ -78,7 +84,8 @@ public class SMSReceiver extends BroadcastReceiver
 		Log.i(TAG, "SMS: " + text);
 		Tracker tracker = new Tracker();
 		if (! parseXexunTK102(text, tracker) &&
-			! parseJointechJT600(text, tracker))
+			! parseJointechJT600(text, tracker) &&
+			! parseTK102Clone1(text, tracker))
 			return;
 			
 		if (tracker.message != null)
@@ -88,6 +95,8 @@ public class SMSReceiver extends BroadcastReceiver
 				tracker.message = null;
 		}
 
+		tracker.imei = Sender;//IMEI it is not good for ID. Phone number is better
+				
 		if (! "".equals(tracker.imei))
 		{
 			// Save tracker data
@@ -150,6 +159,81 @@ public class SMSReceiver extends BroadcastReceiver
 		}
 	}
 
+	private boolean parseTK102Clone1(String text, Tracker tracker)
+	{
+		// Clone TK-102
+		//help me!
+		//lat:50.123456 long:39.123456
+		//speed:0.00
+		//T:13/09/30 10:27
+		//bat:100%
+		//http://maps.google.com/maps?f=q&q=50.... 
+		//
+		//lat:50.123456lon:39.123456
+		//speed:0.00
+		//T:13/09/30 10:27
+		//bat:100% 3597100123456789
+		//http://maps.google.com/maps?f=q&q=50.... 
+				
+		//Pattern pattern = Pattern.compile("(.*)?\\s?lat:\\s?([^\\s]+)\\s  long :\\s?([^\\s]+)\\sspeed:\\s?([\\d\\.]+)\\s(?:T:)?([\\d/:\\.\\s]+)\\s(?:bat|F):([^\\s,]+)(?:V,\\d,)?\\s?signal:([^\\s]+)\\s(.*)?\\s?imei:(\\d+)", Pattern.CASE_INSENSITIVE);
+		Pattern pattern = Pattern.compile("(.*)?\\s?lat:\\s?([^\\sl]+)\\s?long?:\\s?([^\\s]+)\\s?speed:\\s?([\\d\\.]+)\\s?T:?([\\d/:\\.\\s]+)\\s?bat:([^%]+)%\\s?(\\d+)?(.+)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+		Matcher m = pattern.matcher(text);
+		if (! m.matches())
+			return false;
+
+		String latitude = m.group(2);
+		String longitude = m.group(3);
+
+		double coords[] = CoordinateParser.parse(latitude + " " + longitude);
+		if (Double.isNaN(coords[0]) || Double.isNaN(coords[1]))
+			return false;
+
+		tracker.latitude = coords[0];
+		tracker.longitude = coords[1];
+		
+		try
+		{
+			tracker.speed = Double.parseDouble(m.group(4)) / 3.6;
+		}
+		catch (NumberFormatException ignore)
+		{
+		}
+
+		String time = m.group(5);
+		try
+		{
+			Date date = TK102Clone1DateFormatter.parse(time);
+			tracker.modified = date.getTime();
+		}
+		catch (Exception e)
+		{
+			Log.e(TAG, "Date error", e);
+		}
+
+		String battery = m.group(6);
+		try
+		{
+			tracker.battery = Integer.parseInt(battery);
+		}
+		catch (NumberFormatException ignore)
+		{
+		}
+
+		String s_imei =  m.group(7);
+		
+		if ( s_imei != null )	
+		   tracker.imei = s_imei;
+		else
+			tracker.imei = "0000";
+		
+		String message = m.group(1);
+		if (! "".equals(message))
+			tracker.message = message;
+		
+		
+		return true;
+	}
+	
 	private boolean parseJointechJT600(String text, Tracker tracker)
 	{
 		// Jointech JT600
