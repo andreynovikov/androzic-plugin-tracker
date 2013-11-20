@@ -4,5 +4,6 @@
     <bool name="def_notifications">true</bool>
     <bool name="def_vibrate">true</bool>
     <bool name="def_concealsms">true</bool>
+    <bool name="def_flex_mode">false</bool>
     
 </resources>
