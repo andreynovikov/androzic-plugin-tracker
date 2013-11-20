@@ -25,7 +25,7 @@
     <string name="pref_tracker_vibrate_title">Vibrate</string>
     <string name="pref_tracker_concealsms_title">Conceal text messages</string>
     <string name="pref_tracker_markercolor_title">Marker color</string>
-    <string name="pref_tracker_use_flex_mode">Flex mode SMS detection</string>
+    <string name="pref_tracker_use_flex_mode_title">Flex mode SMS detection</string>
     <string name="notif_text">New data from %s was received</string>
 
 </resources>

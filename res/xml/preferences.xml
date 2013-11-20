@@ -23,7 +23,7 @@
         android:title="@string/pref_tracker_markercolor_title" />
     <CheckBoxPreference
         android:defaultValue="@bool/def_flex_mode"
-        android:key="@string/pref_flex_mode"
-        android:title="@string/pref_tracker_use_flex_mode" />    
+        android:key="@string/pref_tracker_use_flex_mode"
+        android:title="@string/pref_tracker_use_flex_mode_title" />    
 
 </PreferenceScreen>

@@ -60,6 +60,8 @@ public class SMSReceiver extends BroadcastReceiver
 	public void onReceive(Context context, Intent intent)
 	{
 		String Sender = "";
+		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+		
 		Log.e(TAG, "SMS received");
 
 		Bundle extras = intent.getExtras();
@@ -80,12 +82,14 @@ public class SMSReceiver extends BroadcastReceiver
 		}
 		
 		String text = messageBuilder.toString();
+		boolean flexMode = prefs.getBoolean(context.getString(R.string.pref_tracker_use_flex_mode), context.getResources().getBoolean(R.bool.def_flex_mode));
 		
 		Log.i(TAG, "SMS: " + text);
 		Tracker tracker = new Tracker();
 		if (! parseXexunTK102(text, tracker) &&
 			! parseJointechJT600(text, tracker) &&
-			! parseTK102Clone1(text, tracker))
+			! parseTK102Clone1(text, tracker) &&
+			! (parseFlexMode(text, tracker) && flexMode) )
 			return;
 			
 		if (tracker.message != null)
@@ -115,8 +119,6 @@ public class SMSReceiver extends BroadcastReceiver
 			dataAccess.close();
 
 			context.sendBroadcast(new Intent(Application.TRACKER_DATE_RECEIVED_BROADCAST));
-
-			SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
 
 			// Show notification
 			boolean notifications = prefs.getBoolean(context.getString(R.string.pref_tracker_notifications), context.getResources().getBoolean(R.bool.def_notifications));
@@ -159,23 +161,63 @@ public class SMSReceiver extends BroadcastReceiver
 		}
 	}
 
+	private boolean parseFlexMode(String text, Tracker tracker)
+	{
+		Log.w(TAG, "parseFlexMode");
+		
+        
+		//Pattern pattern = Pattern.compile("(-?\\d{1,3},\\d{5,6}[SN]?).+(-?\\d{1,3},\\d{5,6}[WE]?)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+		Pattern pattern = Pattern.compile("(-?\\d+(?:\\.|,)\\d{5,6}[SN]?)[^\\d-]+(-?\\d+(?:\\.|,)\\d{5,6}[WE]?)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+		Matcher m = pattern.matcher(text);
+		if (! m.find())
+			return false;
+		
+		Log.w(TAG, "parseFlexMode - match " + m.group(0));
+		
+		
+		
+		String latitude = m.group(1);
+		String longitude = m.group(2);
+
+		double coords[] = CoordinateParser.parse(latitude + " " + longitude);
+		if (Double.isNaN(coords[0]) || Double.isNaN(coords[1]))
+			return false;
+		
+		if(coords[0] < -180 || coords[0] > 180 ||
+		   coords[1] < -180 || coords[1] > 180)
+			return false;
+		
+		tracker.latitude = coords[0];
+		tracker.longitude = coords[1];
+		
+		
+		Log.w(TAG, "parseFlexMode OK " + tracker.latitude + ", " + tracker.longitude);
+		return true;
+	}
+	
 	private boolean parseTK102Clone1(String text, Tracker tracker)
 	{
-		// Clone TK-102
-		//help me!
-		//lat:50.123456 long:39.123456
-		//speed:0.00
-		//T:13/09/30 10:27
-		//bat:100%
-		//http://maps.google.com/maps?f=q&q=50.... 
-		//
-		//lat:50.123456lon:39.123456
-		//speed:0.00
-		//T:13/09/30 10:27
-		//bat:100% 3597100123456789
-		//http://maps.google.com/maps?f=q&q=50.... 
-				
-		//Pattern pattern = Pattern.compile("(.*)?\\s?lat:\\s?([^\\s]+)\\s  long :\\s?([^\\s]+)\\sspeed:\\s?([\\d\\.]+)\\s(?:T:)?([\\d/:\\.\\s]+)\\s(?:bat|F):([^\\s,]+)(?:V,\\d,)?\\s?signal:([^\\s]+)\\s(.*)?\\s?imei:(\\d+)", Pattern.CASE_INSENSITIVE);
+		/* Clone TK-102
+		 
+		help me!
+		lat:50.123456 long:39.123456
+		speed:0.00
+		T:13/09/30 10:27
+		bat:100%
+		http://maps.google.com/maps?f=q&q=50.... 
+		
+		lat:50.123456lon:39.123456
+		speed:0.00
+		T:13/09/30 10:27
+		bat:100% 3597100123456789
+		http://maps.google.com/maps?f=q&q=50.... 
+		
+		lat:51.123456lon:39.123456 speed:0.00 T:13/09/30 10:27 bat:100% 3597100123456789 http://maps.google.com
+		
+		*/		
+
+		Log.w(TAG, "parseTK102Clone1");
+		
 		Pattern pattern = Pattern.compile("(.*)?\\s?lat:\\s?([^\\sl]+)\\s?long?:\\s?([^\\s]+)\\s?speed:\\s?([\\d\\.]+)\\s?T:?([\\d/:\\.\\s]+)\\s?bat:([^%]+)%\\s?(\\d+)?(.+)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 		Matcher m = pattern.matcher(text);
 		if (! m.matches())
