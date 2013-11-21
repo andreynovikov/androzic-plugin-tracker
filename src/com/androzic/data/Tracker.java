@@ -42,6 +42,7 @@ public class Tracker extends MapObject
 	 */
 	public int signal;
 	public String imei;
+	public String sender;
 
 	public Tracker()
 	{

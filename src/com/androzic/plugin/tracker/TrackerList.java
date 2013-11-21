@@ -264,6 +264,8 @@ public class TrackerList extends ListActivity
 				t.setCompoundDrawables(drawable, null, null, null);
 				t.setCompoundDrawablePadding(b.getWidth() / 5);
 			}
+			t = (TextView) view.findViewById(R.id.sender);
+			t.setText(tracker.sender);
 			t = (TextView) view.findViewById(R.id.imei);
 			t.setText(tracker.imei);
 			String coordinates = StringFormatter.coordinates(coordinatesFormat, " ", tracker.latitude, tracker.longitude);
@@ -343,7 +345,7 @@ public class TrackerList extends ListActivity
 					finish();
 					break;
 				case qaTrackerEdit:
-					startActivityForResult(new Intent(TrackerList.this, TrackerProperties.class).putExtra("imei", tracker.imei), 0);
+					startActivityForResult(new Intent(TrackerList.this, TrackerProperties.class).putExtra("sender", tracker.sender), 0);
 					break;
 				case qaTrackerDelete:
 					try

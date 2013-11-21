@@ -36,11 +36,11 @@ public class TrackerProperties extends Activity
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.act_tracker_properties);
 
-		String imei = getIntent().getStringExtra("imei");
+		String sender = getIntent().getStringExtra("sender");
 		
 		application = Application.getApplication();
 		dataAccess = new TrackerDataAccess(this);
-		tracker = dataAccess.getTracker(imei);
+		tracker = dataAccess.getTracker(sender);
 		
 		if (tracker == null)
 		{
@@ -156,7 +156,7 @@ public class TrackerProperties extends Activity
 		{
 			tracker.name = name.getText().toString();
 			if ("".equals(tracker.name))
-				tracker.name = tracker.imei;
+				tracker.name = tracker.sender;
 			tracker.image = iconValue == null ? "" : iconValue;
 			dataAccess.saveTracker(tracker);
 			try

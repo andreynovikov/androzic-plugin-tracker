@@ -99,9 +99,9 @@ public class SMSReceiver extends BroadcastReceiver
 				tracker.message = null;
 		}
 
-		tracker.imei = Sender;//IMEI it is not good for ID. Phone number is better
+		tracker.sender = Sender;
 				
-		if (! "".equals(tracker.imei))
+		if (! "".equals(tracker.sender))
 		{
 			// Save tracker data
 			TrackerDataAccess dataAccess = new TrackerDataAccess(context);
@@ -190,7 +190,42 @@ public class SMSReceiver extends BroadcastReceiver
 		tracker.latitude = coords[0];
 		tracker.longitude = coords[1];
 		
+		pattern = Pattern.compile("speed[^\\d]{0,2}(\\d{1,3}(\\.\\d{1,4})?)[^\\d]", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+		m = pattern.matcher(text);
+		if (m.find())
+		{
+			String speed = m.group(1);
+			
+			try
+			{
+				tracker.speed = Double.parseDouble(speed) / 3.6;
+			}
+			catch (NumberFormatException ignore)
+			{
+			}
+		}
+		pattern = Pattern.compile("imei[^\\d]{0,2}(\\d+)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+		m = pattern.matcher(text);
+		if ( m.find())
+		{
+			String imei = m.group(1);
+			tracker.imei =  imei;
+		}
 		
+		pattern = Pattern.compile("bat(?:tery)?[^\\d]{0,2}(\\d{1,3})[^\\d]", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+		m = pattern.matcher(text);
+		if ( m.find())
+		{
+			String batter = m.group(1);
+			try
+			{
+				tracker.battery = Integer.parseInt(batter);
+			}
+			catch (NumberFormatException ignore)
+			{
+			}
+		}
+	
 		Log.w(TAG, "parseFlexMode OK " + tracker.latitude + ", " + tracker.longitude);
 		return true;
 	}
@@ -265,8 +300,6 @@ public class SMSReceiver extends BroadcastReceiver
 		
 		if ( s_imei != null )	
 		   tracker.imei = s_imei;
-		else
-			tracker.imei = "0000";
 		
 		String message = m.group(1);
 		if (! "".equals(message))
