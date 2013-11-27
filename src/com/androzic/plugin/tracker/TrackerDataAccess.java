@@ -35,8 +35,9 @@ import com.androzic.data.Tracker;
 class TrackerDataAccess extends SQLiteOpenHelper
 {
 	private static final String DATABASE_NAME = "tracker.db";
-	private static final int DATABASE_VERSION = 2;
-	static final String TABLE_NAME = "trackers";
+	private static final int DATABASE_VERSION = 3;
+	static final String TABLE_TRACKERS = "trackers";
+	static final String TABLE_HISTORY = "history";
 	private static final String TAG = "TrackerDataAccess";
 	/**
 	 * ID
@@ -44,7 +45,7 @@ class TrackerDataAccess extends SQLiteOpenHelper
 	 * Type: LONG
 	 * </P>
 	 */
-	public static final String _ID = "_id";
+	public static final String _TRACKER_ID = "_tracker_id";
 	/**
 	 * Map object ID (mapping ID to Androzic map objects)
 	 * <P>
@@ -122,10 +123,20 @@ class TrackerDataAccess extends SQLiteOpenHelper
 	 * </P>
 	 */
 	public static final String MODIFIED = "modified";
+	// foreign key for tracker history
+	public static final String TRACKER_ID = "tracker_id";
+	// The timestamp for when the position was received
+	public static final String TIME = "time";
+	// key for history point
+	public static final String _POINT_ID = "_point_id";
+	
+	private static final String[] trackerColumnsId = new String[] { _TRACKER_ID };
+	private static final String[] trackersColumnsAll = new String[] { _TRACKER_ID, MOID, TITLE, ICON, IMEI, SENDER /*, LATITUDE, LONGITUDE, SPEED, BATTERY, SIGNAL, MODIFIED*/ };
 
-	private static final String[] columnsId = new String[] { _ID };
-	private static final String[] columnsAll = new String[] { _ID, MOID, TITLE, ICON, IMEI, SENDER, LATITUDE, LONGITUDE, SPEED, BATTERY, SIGNAL, MODIFIED };
+	private static final String[] pointColumnsId = new String[] { _POINT_ID };
+	private static final String[] pointColumnsAll = new String[] { _POINT_ID, LATITUDE, LONGITUDE, SPEED, BATTERY, SIGNAL, TIME };
 
+	
 	TrackerDataAccess(Context context)
 	{
 
@@ -177,11 +188,11 @@ class TrackerDataAccess extends SQLiteOpenHelper
 
 		if (tracker._id > 0)
 		{
-			db.update(TrackerDataAccess.TABLE_NAME, values, _ID + " = ?", new String[] { String.valueOf(tracker._id) });
+			db.update(TrackerDataAccess.TABLE_TRACKERS, values, _TRACKER_ID + " = ?", new String[] { String.valueOf(tracker._id) });
 		}
 		else
 		{
-			tracker._id = db.insert(TrackerDataAccess.TABLE_NAME, null, values);
+			tracker._id = db.insert(TrackerDataAccess.TABLE_TRACKERS, null, values);
 		}
 		return tracker._id;
 	}
@@ -189,13 +200,13 @@ class TrackerDataAccess extends SQLiteOpenHelper
 	public void removeTracker(Tracker tracker)
 	{
 		SQLiteDatabase db = getWritableDatabase();
-		Cursor cursor = db.query(TrackerDataAccess.TABLE_NAME, columnsId, SENDER + " = ?", new String[] { tracker.sender }, null, null, null);
+		Cursor cursor = db.query(TrackerDataAccess.TABLE_TRACKERS, trackerColumnsId, SENDER + " = ?", new String[] { tracker.sender }, null, null, null);
 		if (cursor.getCount() > 0)
 		{
 			cursor.moveToFirst();
-			long id = cursor.getLong(cursor.getColumnIndex(_ID));
+			long id = cursor.getLong(cursor.getColumnIndex(_TRACKER_ID));
 			cursor.close();
-			db.delete(TrackerDataAccess.TABLE_NAME, _ID + " = ?", new String[] { String.valueOf(id) });
+			db.delete(TrackerDataAccess.TABLE_TRACKERS, _TRACKER_ID + " = ?", new String[] { String.valueOf(id) });
 		}
 	}
 
@@ -204,7 +215,7 @@ class TrackerDataAccess extends SQLiteOpenHelper
 		Log.w(TAG, "getTracker(String sender)");
 		
 		SQLiteDatabase db = getReadableDatabase();
-		Cursor cursor = db.query(TrackerDataAccess.TABLE_NAME, columnsAll, SENDER + " = ?", new String[] { sender }, null, null, null);
+		Cursor cursor = db.query(TrackerDataAccess.TABLE_TRACKERS, trackersColumnsAll, SENDER + " = ?", new String[] { sender }, null, null, null);
 		if (cursor.getCount() > 0)
 		{
 			cursor.moveToFirst();
@@ -220,7 +231,7 @@ class TrackerDataAccess extends SQLiteOpenHelper
 		Log.w(TAG, "getTracker(Cursor cursor)");
 		
 		Tracker tracker = new Tracker();
-		tracker._id = cursor.getLong(cursor.getColumnIndex(_ID));
+		tracker._id = cursor.getLong(cursor.getColumnIndex(_TRACKER_ID));
 		tracker.moid = cursor.getLong(cursor.getColumnIndex(MOID));
 		tracker.latitude = cursor.getDouble(cursor.getColumnIndex(LATITUDE));
 		tracker.longitude = cursor.getDouble(cursor.getColumnIndex(LONGITUDE));
@@ -239,7 +250,7 @@ class TrackerDataAccess extends SQLiteOpenHelper
 	{	
 		SQLiteDatabase db = getReadableDatabase();
 		
-		return db.query(TrackerDataAccess.TABLE_NAME, columnsAll, null, null, null, null, null);
+		return db.query(TrackerDataAccess.TABLE_TRACKERS, trackersColumnsAll, null, null, null, null, null);
 	}
 
 	@Override
@@ -247,7 +258,9 @@ class TrackerDataAccess extends SQLiteOpenHelper
 	{
 		Log.w(TAG, "onCreate");
 		
-		db.execSQL("CREATE TABLE " + TABLE_NAME + " (" + _ID + " INTEGER PRIMARY KEY," 
+		db.beginTransaction();
+		
+		db.execSQL("CREATE TABLE " + TABLE_TRACKERS + " (" + _TRACKER_ID + " INTEGER PRIMARY KEY," 
 													   + MOID + " INTEGER," 
 													   + IMEI + " TEXT," 
 													   + SENDER + " TEXT NOT NULL UNIQUE," 
@@ -260,6 +273,19 @@ class TrackerDataAccess extends SQLiteOpenHelper
 													   + SIGNAL + " INTEGER," 
 													   + MODIFIED + " INTEGER" 
 											      + ");");
+		
+		db.execSQL("CREATE TABLE " + TABLE_HISTORY + " (" + _POINT_ID + " INTEGER PRIMARY KEY," 
+													   + TRACKER_ID + " INTEGER," 
+													   + LATITUDE + " REAL," 
+													   + LONGITUDE + " REAL," 
+													   + SPEED + " REAL," 
+													   + BATTERY + " INTEGER," 
+													   + SIGNAL + " INTEGER," 
+												       + TIME + " INTEGER"
+											      + ");");
+		
+		db.endTransaction();
+		
 	}
 
 	@Override
@@ -268,7 +294,12 @@ class TrackerDataAccess extends SQLiteOpenHelper
 		Log.e(TAG, " --- onUpgrade database from " + oldVersion
 		          + " to " + newVersion + " version --- ");
 		
-		db.execSQL("DROP TABLE IF EXISTS " + TABLE_NAME);
+		db.beginTransaction();
+		
+		db.execSQL("DROP TABLE IF EXISTS " + TABLE_TRACKERS);
+		db.execSQL("DROP TABLE IF EXISTS " + TABLE_HISTORY);
 		onCreate(db);
+		
+		db.endTransaction();
 	}
 }
