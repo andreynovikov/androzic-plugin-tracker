@@ -177,8 +177,6 @@ class TrackerDataAccess extends SQLiteOpenHelper
 			tracker.name = tracker.sender;
 			
 		
-		db.beginTransaction();
-		
 		if (dbTracker == null)
 		{
 			values.clear();
@@ -192,18 +190,19 @@ class TrackerDataAccess extends SQLiteOpenHelper
 			tracker._id = db.insert(TABLE_TRACKERS, null, values);			
 		}
 		
-		values.clear();
-		values.put(TRACKER_ID, tracker._id);
-		values.put(LATITUDE, tracker.latitude);
-		values.put(LONGITUDE, tracker.longitude);
-		values.put(SPEED, tracker.speed);
-		values.put(BATTERY, tracker.battery);
-		values.put(SIGNAL, tracker.signal);
-		values.put(TIME, Long.valueOf(tracker.modified));
-		
-		db.insert(TABLE_HISTORY, null, values);
-		
-		db.endTransaction();
+		if (tracker._id != -1)
+		{
+			values.clear();
+			values.put(TRACKER_ID, tracker._id);
+			values.put(LATITUDE, tracker.latitude);
+			values.put(LONGITUDE, tracker.longitude);
+			values.put(SPEED, tracker.speed);
+			values.put(BATTERY, tracker.battery);
+			values.put(SIGNAL, tracker.signal);
+			values.put(TIME, Long.valueOf(tracker.modified));
+			
+			db.insert(TABLE_HISTORY, null, values);
+		}
 		
 		return tracker._id;
 	}
@@ -243,7 +242,7 @@ class TrackerDataAccess extends SQLiteOpenHelper
 
 	public Tracker getFullInfoTracker(Cursor cursor)
 	{
-		Log.w(TAG, ">>>> getTracker(Cursor cursor)");
+		Log.w(TAG, ">>>> getFullInfoTracker(Cursor cursor)");
 		
 		SQLiteDatabase db = getReadableDatabase();
 		
@@ -254,7 +253,7 @@ class TrackerDataAccess extends SQLiteOpenHelper
 			return null;
 		}		
 		
-		historyCur.moveToFirst();
+		historyCur.moveToLast();
 			
 		Tracker tracker = new Tracker();
 		
@@ -278,7 +277,7 @@ class TrackerDataAccess extends SQLiteOpenHelper
 
 	public Cursor getHeadersOfTrackers()
 	{	
-		Log.w(TAG, ">>>> getTrackers()");
+		Log.w(TAG, ">>>> getHeadersOfTrackers()");
 		
 		SQLiteDatabase db = getReadableDatabase();
 		
