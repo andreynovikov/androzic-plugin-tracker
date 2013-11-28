@@ -85,7 +85,7 @@ public class Application extends BaseApplication
 	void sendMapObjects() throws RemoteException
 	{
 		TrackerDataAccess dataAccess = new TrackerDataAccess(this);
-		Cursor cursor = dataAccess.getTrackers();
+		Cursor cursor = dataAccess.getHeadersOfTrackers();
 		if (!cursor.moveToFirst())
 		{
 			dataAccess.close();
@@ -93,7 +93,7 @@ public class Application extends BaseApplication
 		}
 		do
 		{
-			Tracker tracker = dataAccess.getTracker(cursor);
+			Tracker tracker = dataAccess.getFullInfoTracker(cursor);
 			sendMapObject(dataAccess, tracker);
 		}
 		while (cursor.moveToNext());
@@ -125,7 +125,7 @@ public class Application extends BaseApplication
 	void removeMapObjects() throws RemoteException
 	{
 		TrackerDataAccess dataAccess = new TrackerDataAccess(this);
-		Cursor cursor = dataAccess.getTrackers();
+		Cursor cursor = dataAccess.getHeadersOfTrackers();
 		if (!cursor.moveToFirst())
 		{
 			dataAccess.close();
@@ -134,7 +134,7 @@ public class Application extends BaseApplication
 		Set<Long> moids = new HashSet<Long>();
 		do
 		{
-			Tracker tracker = dataAccess.getTracker(cursor);
+			Tracker tracker = dataAccess.getFullInfoTracker(cursor);
 			if (tracker.moid > 0)
 			{
 				moids.add(tracker.moid);

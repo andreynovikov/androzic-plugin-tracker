@@ -91,6 +91,7 @@ public class TrackerList extends ListActivity
 	@Override
 	public void onCreate(final Bundle savedInstanceState)
 	{
+		Log.w(TAG, ">>>> onCreate");
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.list_with_empty_view);
 
@@ -124,12 +125,15 @@ public class TrackerList extends ListActivity
 
 		// Create database connection
 		dataAccess = new TrackerDataAccess(this);
-		Cursor cursor = dataAccess.getTrackers();
-
+		Cursor cursor = dataAccess.getHeadersOfTrackers();
+		Log.w(TAG, "getTrackers() - OK");
+		
 		// Bind list adapter
 		adapter = new TrackerListAdapter(this, cursor);
 		setListAdapter(adapter);
 
+		Log.w(TAG, "Bind - OK");
+		
 		// Connect to location service
 		connect();
 	}
@@ -239,12 +243,16 @@ public class TrackerList extends ListActivity
 
 	public class TrackerListAdapter extends CursorAdapter
 	{
+		private static final String TAG = "TrackerList::TrackerListAdapter";
 		private LayoutInflater mInflater;
 		private int mItemLayout;
 
 		public TrackerListAdapter(Context context, Cursor cursor)
 		{
 			super(context, cursor);
+			
+			Log.w(TAG, ">>>> Constructor");
+			
 			mItemLayout = R.layout.tracker_list_item;
 			mInflater = LayoutInflater.from(context);
 		}
@@ -252,7 +260,9 @@ public class TrackerList extends ListActivity
 		@Override
 		public void bindView(View view, Context context, Cursor cursor)
 		{
-			Tracker tracker = dataAccess.getTracker(cursor);
+			Log.w(TAG, ">>>> bindView");
+			
+			Tracker tracker = dataAccess.getFullInfoTracker(cursor);
 			TextView t = (TextView) view.findViewById(R.id.name);
 			t.setText(tracker.name);
 			Application application = Application.getApplication();
@@ -325,7 +335,7 @@ public class TrackerList extends ListActivity
 		{
 			Application application = (Application) getApplication();
 			Cursor cursor = (Cursor) adapter.getItem(selectedPosition);
-			Tracker tracker = dataAccess.getTracker(cursor);
+			Tracker tracker = dataAccess.getFullInfoTracker(cursor);
 
 			switch (actionId)
 			{
