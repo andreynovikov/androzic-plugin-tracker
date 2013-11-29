@@ -50,7 +50,7 @@ public class Application extends BaseApplication
 	 * 
 	 * @throws RemoteException
 	 */
-	void sendMapObject(TrackerDataAccess dataAccess, Tracker tracker) throws RemoteException
+	void sendTrackerOnMap(TrackerDataAccess dataAccess, Tracker tracker) throws RemoteException
 	{
 		ContentProviderClient contentProvider = getContentResolver().acquireContentProviderClient(DataContract.MAPOBJECTS_URI);
 		ContentValues values = new ContentValues();
@@ -66,7 +66,7 @@ public class Application extends BaseApplication
 			if (uri != null)
 			{
 				tracker.moid = ContentUris.parseId(uri);
-				dataAccess.saveTracker(tracker);
+				dataAccess.updateTracker(tracker);
 			}
 		}
 		else
@@ -85,6 +85,8 @@ public class Application extends BaseApplication
 	void sendMapObjects() throws RemoteException
 	{
 		TrackerDataAccess dataAccess = new TrackerDataAccess(this);
+		Tracker tracker;
+		
 		Cursor cursor = dataAccess.getHeadersOfTrackers();
 		if (!cursor.moveToFirst())
 		{
@@ -93,10 +95,10 @@ public class Application extends BaseApplication
 		}
 		do
 		{
-			Tracker tracker = dataAccess.getFullInfoTracker(cursor);
-			sendMapObject(dataAccess, tracker);
+			tracker = dataAccess.getFullInfoTracker(cursor);
+			sendTrackerOnMap(dataAccess, tracker);
 		}
-		while (cursor.moveToNext());
+		while (cursor. moveToNext());
 		dataAccess.close();
 	}
 
@@ -105,14 +107,14 @@ public class Application extends BaseApplication
 	 * 
 	 * @throws RemoteException
 	 */
-	void removeMapObject(TrackerDataAccess dataAccess, Tracker tracker) throws RemoteException
+	void removeTrackerFromMap(TrackerDataAccess dataAccess, Tracker tracker) throws RemoteException
 	{
 		if (tracker.moid <= 0)
 			return;
 		ContentProviderClient contentProvider = getContentResolver().acquireContentProviderClient(DataContract.MAPOBJECTS_URI);
 		Uri uri = ContentUris.withAppendedId(DataContract.MAPOBJECTS_URI, tracker.moid);
 		tracker.moid = 0;
-		dataAccess.saveTracker(tracker);
+		dataAccess.updateTracker(tracker);
 		contentProvider.delete(uri, null, null);
 		contentProvider.release();
 	}
@@ -139,7 +141,7 @@ public class Application extends BaseApplication
 			{
 				moids.add(tracker.moid);
 				tracker.moid = 0;
-				dataAccess.saveTracker(tracker);
+				dataAccess.updateTracker(tracker);
 			}
 		}
 		while (cursor.moveToNext());

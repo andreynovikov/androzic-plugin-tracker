@@ -158,10 +158,10 @@ public class TrackerProperties extends Activity
 			if ("".equals(tracker.name))
 				tracker.name = tracker.sender;
 			tracker.image = iconValue == null ? "" : iconValue;
-			dataAccess.saveTracker(tracker);
+			dataAccess.updateTracker(tracker);
 			try
 			{
-				application.sendMapObject(dataAccess, tracker);
+				application.sendTrackerOnMap(dataAccess, tracker);
 			}
 			catch (RemoteException e)
 			{

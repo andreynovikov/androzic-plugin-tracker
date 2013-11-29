@@ -315,7 +315,7 @@ public class TrackerList extends ListActivity
 			t = (TextView) view.findViewById(R.id.signal);
 			t.setText(String.format("%s: %s", getString(R.string.signal), signal));
 			Calendar calendar = Calendar.getInstance();
-			calendar.setTimeInMillis(tracker.modified);
+			calendar.setTimeInMillis(tracker.time);
 			Date date = calendar.getTime();
 			String modified = DateFormat.getDateFormat(TrackerList.this).format(date) + " " + DateFormat.getTimeFormat(TrackerList.this).format(date);
 			t = (TextView) view.findViewById(R.id.modified);
@@ -360,7 +360,7 @@ public class TrackerList extends ListActivity
 				case qaTrackerDelete:
 					try
 					{
-						application.removeMapObject(dataAccess, tracker);
+						application.removeTrackerFromMap(dataAccess, tracker);
 					}
 					catch (RemoteException e)
 					{

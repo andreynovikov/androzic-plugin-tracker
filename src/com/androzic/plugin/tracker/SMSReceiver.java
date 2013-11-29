@@ -105,11 +105,12 @@ public class SMSReceiver extends BroadcastReceiver
 		{
 			// Save tracker data
 			TrackerDataAccess dataAccess = new TrackerDataAccess(context);
-			dataAccess.saveTracker(tracker);
+			dataAccess.updateTracker(tracker);
+			
 			try
 			{
 				Application application = Application.getApplication();
-				application.sendMapObject(dataAccess, tracker);
+				application.sendTrackerOnMap(dataAccess, tracker);
 			}
 			catch (RemoteException e)
 			{
@@ -142,7 +143,7 @@ public class SMSReceiver extends BroadcastReceiver
 				builder.setContentIntent(contentIntent);
 				builder.setSmallIcon(R.drawable.ic_stat_tracker);
 				builder.setTicker(msg);
-				builder.setWhen(tracker.modified);
+				builder.setWhen(tracker.time);
 				int defaults = Notification.DEFAULT_LIGHTS | Notification.DEFAULT_SOUND;
 				boolean vibrate = prefs.getBoolean(context.getString(R.string.pref_tracker_vibrate), context.getResources().getBoolean(R.bool.def_vibrate));
 				if (vibrate)
@@ -280,7 +281,7 @@ public class SMSReceiver extends BroadcastReceiver
 		try
 		{
 			Date date = TK102Clone1DateFormatter.parse(time);
-			tracker.modified = date.getTime();
+			tracker.time = date.getTime();
 		}
 		catch (Exception e)
 		{
@@ -350,7 +351,7 @@ public class SMSReceiver extends BroadcastReceiver
 			Date date = JointechDateFormatter.parse(time);
 			Date now = new Date();
 			date.setYear(now.getYear());
-			tracker.modified = date.getTime();
+			tracker.time = date.getTime();
 		}
 		catch (Exception e)
 		{
@@ -411,7 +412,7 @@ public class SMSReceiver extends BroadcastReceiver
 		try
 		{
 			Date date = XexunDateFormatter.parse(time);
-			tracker.modified = date.getTime();
+			tracker.time = date.getTime();
 		}
 		catch (Exception e)
 		{

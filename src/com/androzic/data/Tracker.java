@@ -31,7 +31,7 @@ public class Tracker extends MapObject
 	 */
 	public long moid;
 	public double speed;
-	public long modified;
+	public long time;
 	public String message;
 	/**
 	 * Tracker battery level: LEVEL_UNKNOWN, LEVEL_LOW, LEVEL_FULL, 0-100 - percent, > 100 - voltage*100
@@ -48,7 +48,7 @@ public class Tracker extends MapObject
 	{
 		super();
 		speed = 0;
-		modified = 0;
+		time = 0;
 		moid = Long.MIN_VALUE;
 		battery = LEVEL_UNKNOWN;
 		signal = LEVEL_UNKNOWN;
