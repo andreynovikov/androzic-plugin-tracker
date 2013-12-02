@@ -20,6 +20,8 @@
 
 package com.androzic.plugin.tracker;
 
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -34,13 +36,18 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
+import android.text.format.DateFormat;
+import android.util.Log;
 
 import com.androzic.BaseApplication;
 import com.androzic.data.Tracker;
+import com.androzic.data.TrackerFootprins;
 import com.androzic.provider.DataContract;
 
 public class Application extends BaseApplication
 {
+	final String TAG = "Application";
+	
 	public static final String TRACKER_DATE_RECEIVED_BROADCAST = "com.androzic.plugin.tracker.TRACKER_DATA_RECEIVED";
 	
 	int markerColor = Color.BLUE;
@@ -52,6 +59,12 @@ public class Application extends BaseApplication
 	 */
 	void sendTrackerOnMap(TrackerDataAccess dataAccess, Tracker tracker) throws RemoteException
 	{
+		Log.w(TAG, ">>>> sendTrackerOnMap");
+		Log.w(TAG, "     tracker._id = " + tracker._id);
+		Log.w(TAG, "     tracker.time = " + tracker.time);
+		Log.w(TAG, "     tracker.latitude = " + tracker.latitude);
+		Log.w(TAG, "     tracker.longitude = " + tracker.longitude);
+		
 		ContentProviderClient contentProvider = getContentResolver().acquireContentProviderClient(DataContract.MAPOBJECTS_URI);
 		ContentValues values = new ContentValues();
 		values.put(DataContract.MAPOBJECT_COLUMNS[DataContract.MAPOBJECT_LATITUDE_COLUMN], tracker.latitude);
@@ -74,6 +87,55 @@ public class Application extends BaseApplication
 			Uri uri = ContentUris.withAppendedId(DataContract.MAPOBJECTS_URI, tracker.moid);
 			contentProvider.update(uri, values, null, null);
 		}
+		
+		
+		Cursor cursor = dataAccess.getTrackerFootprints(tracker._id);
+		
+		cursor.moveToFirst(); //skip first point
+		
+		if (cursor.moveToNext())
+		{
+			TrackerFootprins footprint = new TrackerFootprins();
+			
+			do
+			{
+				footprint = dataAccess.getTrackerFootprint(cursor);
+				
+				Calendar calendar = Calendar.getInstance();
+				calendar.setTimeInMillis(footprint.time);
+				Date date = calendar.getTime();
+				String time = DateFormat.getTimeFormat(this).format(date);
+				
+				String pointName = tracker.name + " " + time;
+			
+				values.clear();
+				
+				values.put(DataContract.MAPOBJECT_COLUMNS[DataContract.MAPOBJECT_LATITUDE_COLUMN], footprint.latitude);
+				values.put(DataContract.MAPOBJECT_COLUMNS[DataContract.MAPOBJECT_LONGITUDE_COLUMN], footprint.longitude);
+				values.put(DataContract.MAPOBJECT_COLUMNS[DataContract.MAPOBJECT_NAME_COLUMN], pointName);
+				values.put(DataContract.MAPOBJECT_COLUMNS[DataContract.MAPOBJECT_IMAGE_COLUMN], "");
+				values.put(DataContract.MAPOBJECT_COLUMNS[DataContract.MAPOBJECT_BACKCOLOR_COLUMN], markerColor);
+
+				if (footprint.moid <= 0)
+				{
+					Uri uri = contentProvider.insert(DataContract.MAPOBJECTS_URI, values);
+					if (uri != null)
+					{
+						dataAccess.saveFootprintMoid(String.valueOf(footprint._id), String.valueOf(ContentUris.parseId(uri)));
+					}
+				}
+				else
+				{
+					Uri uri = ContentUris.withAppendedId(DataContract.MAPOBJECTS_URI, footprint.moid);
+					contentProvider.update(uri, values, null, null);
+				}
+				
+			}
+			while (cursor. moveToNext());
+		}
+		
+		cursor.close();
+		
 		contentProvider.release();
 	}
 
@@ -116,6 +178,29 @@ public class Application extends BaseApplication
 		tracker.moid = 0;
 		dataAccess.updateTracker(tracker);
 		contentProvider.delete(uri, null, null);
+		
+		Cursor footprintsCursor = dataAccess.getTrackerFootprints(tracker._id);
+		if (footprintsCursor.moveToFirst())
+		{
+			do
+			{
+				TrackerFootprins footprint = dataAccess.getTrackerFootprint(footprintsCursor);
+				if (footprint.moid > 0)
+				{
+					uri = ContentUris.withAppendedId(DataContract.MAPOBJECTS_URI, footprint.moid);
+					contentProvider.delete(uri, null, null);
+					
+					dataAccess.saveFootprintMoid(footprint._id, 0);
+				}
+				
+				
+			}
+			while (footprintsCursor.moveToNext());
+		}
+		
+		footprintsCursor.close();
+
+		
 		contentProvider.release();
 	}
 
@@ -143,6 +228,25 @@ public class Application extends BaseApplication
 				tracker.moid = 0;
 				dataAccess.updateTracker(tracker);
 			}
+			
+			Cursor footprintsCursor = dataAccess.getTrackerFootprints(tracker._id);
+			if (footprintsCursor.moveToFirst())
+			{
+				do
+				{
+					TrackerFootprins footprint = dataAccess.getTrackerFootprint(footprintsCursor);
+					if (footprint.moid > 0)
+					{
+						moids.add(footprint.moid);
+						dataAccess.saveFootprintMoid(footprint._id, 0);
+					}
+					
+					
+				}
+				while (footprintsCursor.moveToNext());
+			}
+			
+			footprintsCursor.close();
 		}
 		while (cursor.moveToNext());
 

@@ -110,6 +110,8 @@ public class SMSReceiver extends BroadcastReceiver
 			try
 			{
 				Application application = Application.getApplication();
+				tracker = dataAccess.getTracker(tracker.sender);//get  latest positon of tracker
+				
 				application.sendTrackerOnMap(dataAccess, tracker);
 			}
 			catch (RemoteException e)

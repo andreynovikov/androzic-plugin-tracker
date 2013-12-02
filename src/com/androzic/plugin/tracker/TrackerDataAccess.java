@@ -27,7 +27,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
-import com.androzic.data.FootprintOfTracker;
+import com.androzic.data.TrackerFootprins;
 import com.androzic.data.Tracker;
 
 /**
@@ -148,7 +148,7 @@ class TrackerDataAccess extends SQLiteOpenHelper
 
 	public long updateTracker(Tracker tracker)
 	{
-		Log.w(TAG, ">>>> saveTracker(" + tracker.sender + ")");
+		Log.w(TAG, ">>>> updateTracker(" + tracker.sender + ")");
 		
 		ContentValues values = new ContentValues();
 		SQLiteDatabase db = getWritableDatabase();
@@ -185,12 +185,12 @@ class TrackerDataAccess extends SQLiteOpenHelper
 		values.put(ICON, tracker.image);
 		values.put(IMEI, tracker.imei);
 		values.put(SENDER, tracker.sender);
-		
+				
 		if (dbTracker == null)
 		{
 			tracker._id = db.insert(TABLE_TRACKERS, null, values);			
 		}
-		else
+		else if (tracker.time >= dbTracker.time )
 		{
 			tracker._id = dbTracker._id;
 			
@@ -218,6 +218,7 @@ class TrackerDataAccess extends SQLiteOpenHelper
 			tracker = dbTracker;
 		}
 		
+		Log.w(TAG, ">>>> updateTracker tracker.time = " + tracker.time);
 		return tracker._id;
 	}
 
@@ -289,17 +290,19 @@ class TrackerDataAccess extends SQLiteOpenHelper
 		return tracker;
 	}
 
-	public FootprintOfTracker getFootprintOfTrackers(Cursor cursor)
+	public TrackerFootprins getTrackerFootprint(Cursor cursor)
 	{
-		Log.w(TAG, ">>>> getFootprintOfTrackers(Cursor cursor)");
+		Log.w(TAG, ">>>> getTrackerFootprint(Cursor cursor)");
 		
-		FootprintOfTracker point = new FootprintOfTracker();
+		TrackerFootprins point = new TrackerFootprins();
 		
 		if (cursor.getCount() == 0)
 		{
 			return null;
 		}
 		
+		point._id = cursor.getLong(cursor.getColumnIndex(_POINT_ID));
+		point.moid = cursor.getLong(cursor.getColumnIndex(MOID));
 		point.latitude = cursor.getDouble(cursor.getColumnIndex(LATITUDE));
 		point.longitude = cursor.getDouble(cursor.getColumnIndex(LONGITUDE));
 		point.speed = cursor.getFloat(cursor.getColumnIndex(SPEED));
@@ -320,13 +323,44 @@ class TrackerDataAccess extends SQLiteOpenHelper
 		return db.query(TrackerDataAccess.TABLE_TRACKERS, null , null, null, null, null, null);
 	}
 
-	public Cursor geTrackerFootprints(long trackerId)
+	public Cursor getTrackerFootprints(long trackerId)
 	{	
 		Log.w(TAG, ">>>> geTrackerFootprints()");
 		
 		SQLiteDatabase db = getReadableDatabase();
 		
 		return db.query(TrackerDataAccess.TABLE_HISTORY, null , TRACKER_ID + " = ?" , new String[] {String.valueOf(trackerId)}, null, null, TIME + " DESC");
+	}
+	
+	public int saveFootprintMoid(String footprintId, String moid)
+	{
+		Log.w(TAG, ">>>> saveFootprintMoid(" + footprintId + "," + moid + ")");
+		
+		SQLiteDatabase db = getReadableDatabase();
+		
+		ContentValues values = new ContentValues();
+		
+		values.put(MOID, moid);
+		
+		return db.update(TABLE_HISTORY, values, _POINT_ID + " = ?", new String[] { footprintId });
+	}
+	
+	public int saveFootprintMoid(long footprintId, long moid)
+	{
+		return saveFootprintMoid( String.valueOf(footprintId), String.valueOf(moid)); 
+	}
+	
+	public int clearFootprintMoids(String trackerId)
+	{
+		Log.w(TAG, ">>>> clearFootprintMoids(" + trackerId + ")");
+		
+		SQLiteDatabase db = getReadableDatabase();
+		
+		ContentValues values = new ContentValues();
+		
+		values.put(MOID, 0);
+		
+		return db.update(TABLE_HISTORY, values, TRACKER_ID + " = ?", new String[] { trackerId });
 	}
 	
 	@Override
@@ -349,6 +383,7 @@ class TrackerDataAccess extends SQLiteOpenHelper
 		
 		db.execSQL("CREATE TABLE " + TABLE_HISTORY + " (" + _POINT_ID + " INTEGER PRIMARY KEY AUTOINCREMENT," 
 													   + TRACKER_ID + " INTEGER NOT NULL," 
+													   + MOID + " INTEGER,"
 													   + LATITUDE + " REAL," 
 													   + LONGITUDE + " REAL," 
 													   + SPEED + " REAL," 
