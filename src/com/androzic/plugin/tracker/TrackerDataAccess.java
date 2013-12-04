@@ -325,7 +325,7 @@ class TrackerDataAccess extends SQLiteOpenHelper
 
 	public Cursor getTrackerFootprints(long trackerId)
 	{	
-		Log.w(TAG, ">>>> geTrackerFootprints()");
+		Log.w(TAG, ">>>> getTrackerFootprints()");
 		
 		SQLiteDatabase db = getReadableDatabase();
 		

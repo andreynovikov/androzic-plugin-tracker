@@ -91,14 +91,22 @@ public class Application extends BaseApplication
 		
 		Cursor cursor = dataAccess.getTrackerFootprints(tracker._id);
 		
+		SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+		int footprintsCount = Integer.parseInt(sharedPreferences.getString(getString(R.string.pref_tracker_footprints_count),
+				                               							   getString(R.string.def_tracker_footprints_count) 
+				                               							   )
+				                              );
+
 		cursor.moveToFirst(); //skip first point
 		
-		if (cursor.moveToNext())
+		if (footprintsCount > 0 && cursor.moveToNext())
 		{
 			TrackerFootprins footprint = new TrackerFootprins();
 			
 			do
 			{
+				--footprintsCount;
+				
 				footprint = dataAccess.getTrackerFootprint(cursor);
 				
 				Calendar calendar = Calendar.getInstance();
@@ -131,7 +139,20 @@ public class Application extends BaseApplication
 				}
 				
 			}
-			while (cursor. moveToNext());
+			while (cursor.moveToNext() && footprintsCount > 0);
+			
+			if(!cursor.isAfterLast())//erase last point from map for preserve displayed footprints count
+			{
+				footprint = dataAccess.getTrackerFootprint(cursor);
+				if (footprint.moid > 0)
+				{
+					Uri uri = ContentUris.withAppendedId(DataContract.MAPOBJECTS_URI, footprint.moid);
+					contentProvider.delete(uri, null, null);
+					
+					dataAccess.saveFootprintMoid(footprint._id, 0);
+				}
+			}
+			
 		}
 		
 		cursor.close();
