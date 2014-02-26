@@ -51,11 +51,17 @@ public class SMSReceiver extends BroadcastReceiver
 	private static final SimpleDateFormat JointechDateFormatter = new SimpleDateFormat("MM-dd HH:mm:ss");
 	@SuppressLint("SimpleDateFormat")
 	private static final SimpleDateFormat XexunDateFormatter = new SimpleDateFormat("dd/MM/yy HH:mm");
+	@SuppressLint("SimpleDateFormat")
+	private static final SimpleDateFormat TK102Clone1DateFormatter = new SimpleDateFormat("yy/MM/dd HH:mm");
+	
 	private static final Pattern realNumber = Pattern.compile("\\d+\\.\\d+");
 
 	@Override
 	public void onReceive(Context context, Intent intent)
 	{
+		String Sender = "";
+		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+		
 		Log.e(TAG, "SMS received");
 
 		Bundle extras = intent.getExtras();
@@ -68,17 +74,22 @@ public class SMSReceiver extends BroadcastReceiver
 		{
 			SmsMessage msg = SmsMessage.createFromPdu((byte[]) pdus[i]);
 			String text = msg.getMessageBody();
+			Sender = msg.getDisplayOriginatingAddress();
+			Log.w(TAG, "Sender: " + Sender);
 			if (text == null)
 				continue;
 			messageBuilder.append(text);
 		}
 		
 		String text = messageBuilder.toString();
+		boolean flexMode = prefs.getBoolean(context.getString(R.string.pref_tracker_use_flex_mode), context.getResources().getBoolean(R.bool.def_flex_mode));
 		
 		Log.i(TAG, "SMS: " + text);
 		Tracker tracker = new Tracker();
 		if (! parseXexunTK102(text, tracker) &&
-			! parseJointechJT600(text, tracker))
+			! parseJointechJT600(text, tracker) &&
+			! parseTK102Clone1(text, tracker) &&
+			! (parseFlexMode(text, tracker) && flexMode) )
 			return;
 			
 		if (tracker.message != null)
@@ -88,15 +99,20 @@ public class SMSReceiver extends BroadcastReceiver
 				tracker.message = null;
 		}
 
-		if (! "".equals(tracker.imei))
+		tracker.sender = Sender;
+				
+		if (! "".equals(tracker.sender))
 		{
 			// Save tracker data
 			TrackerDataAccess dataAccess = new TrackerDataAccess(context);
-			dataAccess.saveTracker(tracker);
+			dataAccess.updateTracker(tracker);
+			
 			try
 			{
 				Application application = Application.getApplication();
-				application.sendMapObject(dataAccess, tracker);
+				tracker = dataAccess.getTracker(tracker.sender);//get  latest positon of tracker
+				
+				application.sendTrackerOnMap(dataAccess, tracker);
 			}
 			catch (RemoteException e)
 			{
@@ -106,8 +122,6 @@ public class SMSReceiver extends BroadcastReceiver
 			dataAccess.close();
 
 			context.sendBroadcast(new Intent(Application.TRACKER_DATE_RECEIVED_BROADCAST));
-
-			SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
 
 			// Show notification
 			boolean notifications = prefs.getBoolean(context.getString(R.string.pref_tracker_notifications), context.getResources().getBoolean(R.bool.def_notifications));
@@ -131,7 +145,7 @@ public class SMSReceiver extends BroadcastReceiver
 				builder.setContentIntent(contentIntent);
 				builder.setSmallIcon(R.drawable.ic_stat_tracker);
 				builder.setTicker(msg);
-				builder.setWhen(tracker.modified);
+				builder.setWhen(tracker.time);
 				int defaults = Notification.DEFAULT_LIGHTS | Notification.DEFAULT_SOUND;
 				boolean vibrate = prefs.getBoolean(context.getString(R.string.pref_tracker_vibrate), context.getResources().getBoolean(R.bool.def_vibrate));
 				if (vibrate)
@@ -150,6 +164,154 @@ public class SMSReceiver extends BroadcastReceiver
 		}
 	}
 
+	private boolean parseFlexMode(String text, Tracker tracker)
+	{
+		Log.w(TAG, "parseFlexMode");
+		
+        
+		//Pattern pattern = Pattern.compile("(-?\\d{1,3},\\d{5,6}[SN]?).+(-?\\d{1,3},\\d{5,6}[WE]?)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+		Pattern pattern = Pattern.compile("(-?\\d+(?:\\.|,)\\d{5,6}[SN]?)[^\\d-]+(-?\\d+(?:\\.|,)\\d{5,6}[WE]?)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+		Matcher m = pattern.matcher(text);
+		if (! m.find())
+			return false;
+		
+		Log.w(TAG, "parseFlexMode - match " + m.group(0));
+		
+		
+		
+		String latitude = m.group(1);
+		String longitude = m.group(2);
+
+		double coords[] = CoordinateParser.parse(latitude + " " + longitude);
+		if (Double.isNaN(coords[0]) || Double.isNaN(coords[1]))
+			return false;
+		
+		if(coords[0] < -180 || coords[0] > 180 ||
+		   coords[1] < -180 || coords[1] > 180)
+			return false;
+		
+		tracker.latitude = coords[0];
+		tracker.longitude = coords[1];
+		
+		pattern = Pattern.compile("speed[^\\d]{0,2}(\\d{1,3}(\\.\\d{1,4})?)[^\\d]", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+		m = pattern.matcher(text);
+		if (m.find())
+		{
+			String speed = m.group(1);
+			
+			try
+			{
+				tracker.speed = Double.parseDouble(speed) / 3.6;
+			}
+			catch (NumberFormatException ignore)
+			{
+			}
+		}
+		pattern = Pattern.compile("imei[^\\d]{0,2}(\\d+)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+		m = pattern.matcher(text);
+		if ( m.find())
+		{
+			String imei = m.group(1);
+			tracker.imei =  imei;
+		}
+		
+		pattern = Pattern.compile("bat(?:tery)?[^\\d]{0,2}(\\d{1,3})[^\\d]", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+		m = pattern.matcher(text);
+		if ( m.find())
+		{
+			String batter = m.group(1);
+			try
+			{
+				tracker.battery = Integer.parseInt(batter);
+			}
+			catch (NumberFormatException ignore)
+			{
+			}
+		}
+	
+		Log.w(TAG, "parseFlexMode OK " + tracker.latitude + ", " + tracker.longitude);
+		return true;
+	}
+	
+	private boolean parseTK102Clone1(String text, Tracker tracker)
+	{
+		/* Clone TK-102
+		 
+		help me!
+		lat:50.123456 long:39.123456
+		speed:0.00
+		T:13/09/30 10:27
+		bat:100%
+		http://maps.google.com/maps?f=q&q=50.... 
+		
+		lat:50.123456lon:39.123456
+		speed:0.00
+		T:13/09/30 10:27
+		bat:100% 3597100123456789
+		http://maps.google.com/maps?f=q&q=50.... 
+		
+		lat:51.123456lon:39.123456 speed:0.00 T:13/09/30 10:27 bat:100% 3597100123456789 http://maps.google.com
+		
+		*/		
+
+		Log.w(TAG, "parseTK102Clone1");
+		
+		Pattern pattern = Pattern.compile("(.*)?\\s?lat:\\s?([^\\sl]+)\\s?long?:\\s?([^\\s]+)\\s?speed:\\s?([\\d\\.]+)\\s?T:?([\\d/:\\.\\s]+)\\s?bat:([^%]+)%\\s?(\\d+)?(.+)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+		Matcher m = pattern.matcher(text);
+		if (! m.matches())
+			return false;
+
+		String latitude = m.group(2);
+		String longitude = m.group(3);
+
+		double coords[] = CoordinateParser.parse(latitude + " " + longitude);
+		if (Double.isNaN(coords[0]) || Double.isNaN(coords[1]))
+			return false;
+
+		tracker.latitude = coords[0];
+		tracker.longitude = coords[1];
+		
+		try
+		{
+			tracker.speed = Double.parseDouble(m.group(4)) / 3.6;
+		}
+		catch (NumberFormatException ignore)
+		{
+		}
+
+		String time = m.group(5);
+		try
+		{
+			Date date = TK102Clone1DateFormatter.parse(time);
+			tracker.time = date.getTime();
+		}
+		catch (Exception e)
+		{
+			Log.e(TAG, "Date error", e);
+		}
+
+		String battery = m.group(6);
+		try
+		{
+			tracker.battery = Integer.parseInt(battery);
+		}
+		catch (NumberFormatException ignore)
+		{
+		}
+
+		String s_imei =  m.group(7);
+		
+		if ( s_imei != null )	
+		   tracker.imei = s_imei;
+		
+		String message = m.group(1);
+		if (! "".equals(message))
+			tracker.message = message;
+		
+		
+		return true;
+	}
+	
 	private boolean parseJointechJT600(String text, Tracker tracker)
 	{
 		// Jointech JT600
@@ -191,7 +353,7 @@ public class SMSReceiver extends BroadcastReceiver
 			Date date = JointechDateFormatter.parse(time);
 			Date now = new Date();
 			date.setYear(now.getYear());
-			tracker.modified = date.getTime();
+			tracker.time = date.getTime();
 		}
 		catch (Exception e)
 		{
@@ -252,7 +414,7 @@ public class SMSReceiver extends BroadcastReceiver
 		try
 		{
 			Date date = XexunDateFormatter.parse(time);
-			tracker.modified = date.getTime();
+			tracker.time = date.getTime();
 		}
 		catch (Exception e)
 		{

@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="pref_tracker_notifications" translatable="false">tracker_notifications</string>
-    <string name="pref_tracker_vibrate" translatable="false">tracker_vibrate</string>
-    <string name="pref_tracker_concealsms" translatable="false">tracker_concealsms</string>
+	<string name="pref_tracker_notifications" translatable="false">tracker_notifications</string>
+	<string name="pref_tracker_vibrate" translatable="false">tracker_vibrate</string>
+	<string name="pref_tracker_concealsms" translatable="false">tracker_concealsms</string>
 	<string name="pref_tracker_markercolor" translatable="false">tracker_markercolor</string>
+	<string name="pref_tracker_use_flex_mode" translatable="false">flex_mode</string>
+	<string name="pref_tracker_footprints_count" translatable="false">footprints_count</string>
+	
+	<string name="def_tracker_footprints_count" translatable="false">10</string>
+	
 </resources>

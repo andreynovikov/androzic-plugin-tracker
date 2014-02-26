@@ -25,7 +25,9 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.Log;
 
+import com.androzic.data.TrackerFootprins;
 import com.androzic.data.Tracker;
 
 /**
@@ -34,16 +36,17 @@ import com.androzic.data.Tracker;
 class TrackerDataAccess extends SQLiteOpenHelper
 {
 	private static final String DATABASE_NAME = "tracker.db";
-	private static final int DATABASE_VERSION = 1;
-	static final String TABLE_NAME = "trackers";
-
+	private static final int DATABASE_VERSION = 3;
+	static final String TABLE_TRACKERS = "trackers";
+	static final String TABLE_HISTORY = "history";
+	private static final String TAG = "TrackerDataAccess";
 	/**
 	 * ID
 	 * <P>
 	 * Type: LONG
 	 * </P>
 	 */
-	public static final String _ID = "_id";
+	public static final String _TRACKER_ID = "_id";
 	/**
 	 * Map object ID (mapping ID to Androzic map objects)
 	 * <P>
@@ -65,6 +68,13 @@ class TrackerDataAccess extends SQLiteOpenHelper
 	 * </P>
 	 */
 	public static final String IMEI = "imei";
+	/**
+	 * Sender
+	 * <P>
+	 * Type: TEXT
+	 * </P>
+	 */
+	public static final String SENDER = "sender";
 	/**
 	 * Icon
 	 * <P>
@@ -114,23 +124,39 @@ class TrackerDataAccess extends SQLiteOpenHelper
 	 * </P>
 	 */
 	public static final String MODIFIED = "modified";
+	// foreign key for tracker history
+	public static final String TRACKER_ID = "tracker_id";
+	// The timestamp for when the position was received
+	public static final String TIME = "time";
+	// key for history point
+	public static final String _POINT_ID = "_point_id";
+	
+	private static final String[] trackerColumnsId = new String[] { _TRACKER_ID };
+	private static final String[] trackersColumnsAll = new String[] { _TRACKER_ID, MOID, TITLE, ICON, IMEI, SENDER /*, LATITUDE, LONGITUDE, SPEED, BATTERY, SIGNAL, MODIFIED*/ };
 
-	private static final String[] columnsId = new String[] { _ID };
-	private static final String[] columnsAll = new String[] { _ID, MOID, TITLE, ICON, IMEI, LATITUDE, LONGITUDE, SPEED, BATTERY, SIGNAL, MODIFIED };
+	private static final String[] pointColumnsId = new String[] { _POINT_ID };
+	private static final String[] pointColumnsAll = new String[] { _POINT_ID, LATITUDE, LONGITUDE, SPEED, BATTERY, SIGNAL, TIME };
 
+	
 	TrackerDataAccess(Context context)
 	{
+
 		super(context, DATABASE_NAME, null, DATABASE_VERSION);
+		
+		Log.w(TAG, ">>>> Constructor DB_VER " + DATABASE_VERSION);
 	}
 
-	public long saveTracker(Tracker tracker)
+	public long updateTracker(Tracker tracker)
 	{
-		if (tracker.modified == 0)
-			tracker.modified = System.currentTimeMillis();
-
+		Log.w(TAG, ">>>> updateTracker(" + tracker.sender + ")");
+		
+		ContentValues values = new ContentValues();
 		SQLiteDatabase db = getWritableDatabase();
+		
+		if (tracker.time == 0)
+			tracker.time = System.currentTimeMillis();
 
-		Tracker dbTracker = getTracker(tracker.imei);
+		Tracker dbTracker = getTracker(tracker.sender);
 		if (dbTracker != null)
 		{
 			// Preserve user defined properties
@@ -147,93 +173,241 @@ class TrackerDataAccess extends SQLiteOpenHelper
 			tracker._id = dbTracker._id;
 		}
 		
+		
 		// Set default name for new tracker
 		if ("".equals(tracker.name))
-			tracker.name = tracker.imei;
+			tracker.name = tracker.sender;
 			
-		ContentValues values = new ContentValues();
+		values.clear();
+		
 		values.put(MOID, tracker.moid);
 		values.put(TITLE, tracker.name);
 		values.put(ICON, tracker.image);
 		values.put(IMEI, tracker.imei);
-		values.put(LATITUDE, tracker.latitude);
-		values.put(LONGITUDE, tracker.longitude);
-		values.put(SPEED, tracker.speed);
-		values.put(BATTERY, tracker.battery);
-		values.put(SIGNAL, tracker.signal);
-		values.put(MODIFIED, Long.valueOf(tracker.modified));
-
-		if (tracker._id > 0)
+		values.put(SENDER, tracker.sender);
+				
+		if (dbTracker == null)
 		{
-			db.update(TrackerDataAccess.TABLE_NAME, values, _ID + " = ?", new String[] { String.valueOf(tracker._id) });
+			tracker._id = db.insert(TABLE_TRACKERS, null, values);			
 		}
-		else
+		else if (tracker.time >= dbTracker.time )
 		{
-			tracker._id = db.insert(TrackerDataAccess.TABLE_NAME, null, values);
+			tracker._id = dbTracker._id;
+			
+			db.update(TABLE_TRACKERS, values, _TRACKER_ID + " = ?", new String[] { String.valueOf(dbTracker._id) });
 		}
+		
+		
+		if (tracker._id != -1 
+		    && ( dbTracker == null || ( dbTracker != null && tracker.time != dbTracker.time )) )
+		{
+			values.clear();
+			values.put(TRACKER_ID, tracker._id);
+			values.put(LATITUDE, tracker.latitude);
+			values.put(LONGITUDE, tracker.longitude);
+			values.put(SPEED, tracker.speed);
+			values.put(BATTERY, tracker.battery);
+			values.put(SIGNAL, tracker.signal);
+			values.put(TIME, Long.valueOf(tracker.time));
+			
+			db.insert(TABLE_HISTORY, null, values);
+		}
+		
+		if( dbTracker != null && ( tracker.time < dbTracker.time ) )
+		{
+			tracker = dbTracker;
+		}
+		
+		Log.w(TAG, ">>>> updateTracker tracker.time = " + tracker.time);
 		return tracker._id;
 	}
 
+
 	public void removeTracker(Tracker tracker)
 	{
+		Log.w(TAG, ">>>> removeTracker(" + tracker.sender + ")");
 		SQLiteDatabase db = getWritableDatabase();
-		Cursor cursor = db.query(TrackerDataAccess.TABLE_NAME, columnsId, IMEI + " = ?", new String[] { tracker.imei }, null, null, null);
+		Cursor cursor = db.query(TrackerDataAccess.TABLE_TRACKERS, trackerColumnsId, SENDER + " = ?", new String[] { tracker.sender }, null, null, null);
 		if (cursor.getCount() > 0)
 		{
 			cursor.moveToFirst();
-			long id = cursor.getLong(cursor.getColumnIndex(_ID));
+			long id = cursor.getLong(cursor.getColumnIndex(_TRACKER_ID));
 			cursor.close();
-			db.delete(TrackerDataAccess.TABLE_NAME, _ID + " = ?", new String[] { String.valueOf(id) });
+			db.delete(TrackerDataAccess.TABLE_TRACKERS, _TRACKER_ID + " = ?", new String[] { String.valueOf(id) });
 		}
 	}
 
-	public Tracker getTracker(String imei)
+	public Tracker getTracker(String sender)
 	{
+		Log.w(TAG, ">>>> getTracker(" + sender + ")");
+		
 		SQLiteDatabase db = getReadableDatabase();
-		Cursor cursor = db.query(TrackerDataAccess.TABLE_NAME, columnsAll, IMEI + " = ?", new String[] { imei }, null, null, null);
+		
+		Cursor cursor = db.query(TABLE_TRACKERS, null, SENDER + " = ?", new String[] { sender }, null, null, null);
+				
 		if (cursor.getCount() > 0)
 		{
 			cursor.moveToFirst();
-			Tracker tracker = getTracker(cursor);
+			Tracker tracker = getFullInfoTracker(cursor);
 			cursor.close();
 			return tracker;
 		}
 		return null;
 	}
 
-	public Tracker getTracker(Cursor cursor)
+	public Tracker getFullInfoTracker(Cursor cursor)
 	{
+		Log.w(TAG, ">>>> getFullInfoTracker(Cursor cursor)");
+		
+		SQLiteDatabase db = getReadableDatabase();
+		
+		Cursor historyCur = db.query(TABLE_HISTORY, null, TRACKER_ID + " = ?", new String[] { cursor.getString(cursor.getColumnIndex(_TRACKER_ID)) }, null, null, TIME + " DESC");
+		
+		if (historyCur.getCount() == 0)
+		{
+			return null;
+		}		
+		
+		historyCur.moveToFirst();
+			
 		Tracker tracker = new Tracker();
-		tracker._id = cursor.getLong(cursor.getColumnIndex(_ID));
+		
+		tracker._id = cursor.getLong(cursor.getColumnIndex(_TRACKER_ID));
 		tracker.moid = cursor.getLong(cursor.getColumnIndex(MOID));
-		tracker.latitude = cursor.getDouble(cursor.getColumnIndex(LATITUDE));
-		tracker.longitude = cursor.getDouble(cursor.getColumnIndex(LONGITUDE));
-		tracker.speed = cursor.getFloat(cursor.getColumnIndex(SPEED));
-		tracker.battery = cursor.getInt(cursor.getColumnIndex(BATTERY));
-		tracker.signal = cursor.getInt(cursor.getColumnIndex(SIGNAL));
 		tracker.name = cursor.getString(cursor.getColumnIndex(TITLE));
 		tracker.imei = cursor.getString(cursor.getColumnIndex(IMEI));
+		tracker.sender = cursor.getString(cursor.getColumnIndex(SENDER));
 		tracker.image = cursor.getString(cursor.getColumnIndex(ICON));
-		tracker.modified = cursor.getLong(cursor.getColumnIndex(MODIFIED));
+		
+		
+		tracker.latitude = historyCur.getDouble(historyCur.getColumnIndex(LATITUDE));
+		tracker.longitude = historyCur.getDouble(historyCur.getColumnIndex(LONGITUDE));
+		tracker.speed = historyCur.getFloat(historyCur.getColumnIndex(SPEED));
+		tracker.battery = historyCur.getInt(historyCur.getColumnIndex(BATTERY));
+		tracker.signal = historyCur.getInt(historyCur.getColumnIndex(SIGNAL));
+		tracker.time = historyCur.getLong(historyCur.getColumnIndex(TIME));
+		
 		return tracker;
 	}
 
-	public Cursor getTrackers()
+	public TrackerFootprins getTrackerFootprint(Cursor cursor)
 	{
+		Log.w(TAG, ">>>> getTrackerFootprint(Cursor cursor)");
+		
+		TrackerFootprins point = new TrackerFootprins();
+		
+		if (cursor.getCount() == 0)
+		{
+			return null;
+		}
+		
+		point._id = cursor.getLong(cursor.getColumnIndex(_POINT_ID));
+		point.moid = cursor.getLong(cursor.getColumnIndex(MOID));
+		point.latitude = cursor.getDouble(cursor.getColumnIndex(LATITUDE));
+		point.longitude = cursor.getDouble(cursor.getColumnIndex(LONGITUDE));
+		point.speed = cursor.getFloat(cursor.getColumnIndex(SPEED));
+		point.battery = cursor.getInt(cursor.getColumnIndex(BATTERY));
+		point.signal = cursor.getInt(cursor.getColumnIndex(SIGNAL));
+		point.time = cursor.getLong(cursor.getColumnIndex(TIME));
+		
+		return point;
+	}
+	
+	
+	public Cursor getHeadersOfTrackers()
+	{	
+		Log.w(TAG, ">>>> getHeadersOfTrackers()");
+		
 		SQLiteDatabase db = getReadableDatabase();
-		return db.query(TrackerDataAccess.TABLE_NAME, columnsAll, null, null, null, null, null);
+		
+		return db.query(TrackerDataAccess.TABLE_TRACKERS, null , null, null, null, null, null);
 	}
 
+	public Cursor getTrackerFootprints(long trackerId)
+	{	
+		Log.w(TAG, ">>>> getTrackerFootprints()");
+		
+		SQLiteDatabase db = getReadableDatabase();
+		
+		return db.query(TrackerDataAccess.TABLE_HISTORY, null , TRACKER_ID + " = ?" , new String[] {String.valueOf(trackerId)}, null, null, TIME + " DESC");
+	}
+	
+	public int saveFootprintMoid(String footprintId, String moid)
+	{
+		Log.w(TAG, ">>>> saveFootprintMoid(" + footprintId + "," + moid + ")");
+		
+		SQLiteDatabase db = getReadableDatabase();
+		
+		ContentValues values = new ContentValues();
+		
+		values.put(MOID, moid);
+		
+		return db.update(TABLE_HISTORY, values, _POINT_ID + " = ?", new String[] { footprintId });
+	}
+	
+	public int saveFootprintMoid(long footprintId, long moid)
+	{
+		return saveFootprintMoid( String.valueOf(footprintId), String.valueOf(moid)); 
+	}
+	
+	public int clearFootprintMoids(String trackerId)
+	{
+		Log.w(TAG, ">>>> clearFootprintMoids(" + trackerId + ")");
+		
+		SQLiteDatabase db = getReadableDatabase();
+		
+		ContentValues values = new ContentValues();
+		
+		values.put(MOID, 0);
+		
+		return db.update(TABLE_HISTORY, values, TRACKER_ID + " = ?", new String[] { trackerId });
+	}
+	
 	@Override
 	public void onCreate(SQLiteDatabase db)
 	{
-		db.execSQL("CREATE TABLE " + TABLE_NAME + " (" + _ID + " INTEGER PRIMARY KEY," + MOID + " INTEGER," + IMEI + " TEXT NOT NULL UNIQUE," + TITLE + " TEXT," + ICON + " TEXT," + LATITUDE + " REAL," + LONGITUDE + " REAL," + SPEED + " REAL," + BATTERY + " INTEGER," + SIGNAL + " INTEGER," + MODIFIED + " INTEGER" + ");");
+		Log.w(TAG, ">>>> onCreate");
+		
+		db.execSQL("DROP TABLE IF EXISTS " + TABLE_TRACKERS);
+		db.execSQL("DROP TABLE IF EXISTS " + TABLE_HISTORY);
+		
+		db.execSQL("PRAGMA foreign_keys = ON;");
+		
+		db.execSQL("CREATE TABLE " + TABLE_TRACKERS + " (" + _TRACKER_ID + " INTEGER PRIMARY KEY," 
+													   + MOID + " INTEGER," 
+													   + IMEI + " TEXT," 
+													   + SENDER + " TEXT NOT NULL UNIQUE," 
+													   + TITLE + " TEXT," 
+													   + ICON + " TEXT"  
+											      + ");");
+		
+		db.execSQL("CREATE TABLE " + TABLE_HISTORY + " (" + _POINT_ID + " INTEGER PRIMARY KEY AUTOINCREMENT," 
+													   + TRACKER_ID + " INTEGER NOT NULL," 
+													   + MOID + " INTEGER,"
+													   + LATITUDE + " REAL," 
+													   + LONGITUDE + " REAL," 
+													   + SPEED + " REAL," 
+													   + BATTERY + " INTEGER," 
+													   + SIGNAL + " INTEGER," 
+												       + TIME + " INTEGER," 
+												       + "FOREIGN KEY (" + TRACKER_ID + ") REFERENCES " + TABLE_TRACKERS +"(" + _TRACKER_ID + ") ON DELETE CASCADE"
+											      + ");");
+		
+		
 	}
 
 	@Override
 	public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion)
 	{
-		db.execSQL("DROP TABLE IF EXISTS " + TABLE_NAME);
+		Log.e(TAG, " --- onUpgrade database from " + oldVersion
+		          + " to " + newVersion + " version --- ");
+		
+		db.beginTransaction();
+		
+		db.execSQL("DROP TABLE IF EXISTS " + TABLE_TRACKERS);
+		db.execSQL("DROP TABLE IF EXISTS " + TABLE_HISTORY);
 		onCreate(db);
+		
+		db.endTransaction();
 	}
 }

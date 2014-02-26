@@ -25,5 +25,11 @@
   <string name="pref_tracker_vibrate_title">Вибрация</string>
   <string name="pref_tracker_concealsms_title">Скрывать текстовые сообщения</string>
   <string name="pref_tracker_markercolor_title">Цвет метки</string>
+  <string name="pref_tracker_use_flex_mode_title">Универсальный SMS режим"</string>
+  <string name="pref_tracker_footprints_count_title">Старые точки</string>
   <string name="notif_text">Новые данные, источник: %s</string>
+  
+  <string name="pref_tracker_footprints_count_summary">Количество предыдущих положений трекера, котрые будут отображаться на карте</string>
+ 
+  
 </resources>

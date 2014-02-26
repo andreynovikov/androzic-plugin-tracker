@@ -91,6 +91,7 @@ public class TrackerList extends ListActivity
 	@Override
 	public void onCreate(final Bundle savedInstanceState)
 	{
+		Log.w(TAG, ">>>> onCreate");
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.list_with_empty_view);
 
@@ -124,12 +125,15 @@ public class TrackerList extends ListActivity
 
 		// Create database connection
 		dataAccess = new TrackerDataAccess(this);
-		Cursor cursor = dataAccess.getTrackers();
-
+		Cursor cursor = dataAccess.getHeadersOfTrackers();
+		Log.w(TAG, "getTrackers() - OK");
+		
 		// Bind list adapter
 		adapter = new TrackerListAdapter(this, cursor);
 		setListAdapter(adapter);
 
+		Log.w(TAG, "Bind - OK");
+		
 		// Connect to location service
 		connect();
 	}
@@ -239,12 +243,16 @@ public class TrackerList extends ListActivity
 
 	public class TrackerListAdapter extends CursorAdapter
 	{
+		private static final String TAG = "TrackerList::TrackerListAdapter";
 		private LayoutInflater mInflater;
 		private int mItemLayout;
 
 		public TrackerListAdapter(Context context, Cursor cursor)
 		{
 			super(context, cursor);
+			
+			Log.w(TAG, ">>>> Constructor");
+			
 			mItemLayout = R.layout.tracker_list_item;
 			mInflater = LayoutInflater.from(context);
 		}
@@ -252,7 +260,9 @@ public class TrackerList extends ListActivity
 		@Override
 		public void bindView(View view, Context context, Cursor cursor)
 		{
-			Tracker tracker = dataAccess.getTracker(cursor);
+			Log.w(TAG, ">>>> bindView");
+			
+			Tracker tracker = dataAccess.getFullInfoTracker(cursor);
 			TextView t = (TextView) view.findViewById(R.id.name);
 			t.setText(tracker.name);
 			Application application = Application.getApplication();
@@ -264,6 +274,8 @@ public class TrackerList extends ListActivity
 				t.setCompoundDrawables(drawable, null, null, null);
 				t.setCompoundDrawablePadding(b.getWidth() / 5);
 			}
+			t = (TextView) view.findViewById(R.id.sender);
+			t.setText(tracker.sender);
 			t = (TextView) view.findViewById(R.id.imei);
 			t.setText(tracker.imei);
 			String coordinates = StringFormatter.coordinates(coordinatesFormat, " ", tracker.latitude, tracker.longitude);
@@ -303,7 +315,7 @@ public class TrackerList extends ListActivity
 			t = (TextView) view.findViewById(R.id.signal);
 			t.setText(String.format("%s: %s", getString(R.string.signal), signal));
 			Calendar calendar = Calendar.getInstance();
-			calendar.setTimeInMillis(tracker.modified);
+			calendar.setTimeInMillis(tracker.time);
 			Date date = calendar.getTime();
 			String modified = DateFormat.getDateFormat(TrackerList.this).format(date) + " " + DateFormat.getTimeFormat(TrackerList.this).format(date);
 			t = (TextView) view.findViewById(R.id.modified);
@@ -323,7 +335,7 @@ public class TrackerList extends ListActivity
 		{
 			Application application = (Application) getApplication();
 			Cursor cursor = (Cursor) adapter.getItem(selectedPosition);
-			Tracker tracker = dataAccess.getTracker(cursor);
+			Tracker tracker = dataAccess.getFullInfoTracker(cursor);
 
 			switch (actionId)
 			{
@@ -343,12 +355,12 @@ public class TrackerList extends ListActivity
 					finish();
 					break;
 				case qaTrackerEdit:
-					startActivityForResult(new Intent(TrackerList.this, TrackerProperties.class).putExtra("imei", tracker.imei), 0);
+					startActivityForResult(new Intent(TrackerList.this, TrackerProperties.class).putExtra("sender", tracker.sender), 0);
 					break;
 				case qaTrackerDelete:
 					try
 					{
-						application.removeMapObject(dataAccess, tracker);
+						application.removeTrackerFromMap(dataAccess, tracker);
 					}
 					catch (RemoteException e)
 					{
