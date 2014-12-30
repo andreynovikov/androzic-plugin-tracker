@@ -53,7 +53,9 @@ public class SMSReceiver extends BroadcastReceiver
 	private static final SimpleDateFormat XexunDateFormatter = new SimpleDateFormat("dd/MM/yy HH:mm");
 	@SuppressLint("SimpleDateFormat")
 	private static final SimpleDateFormat TK102Clone1DateFormatter = new SimpleDateFormat("yy/MM/dd HH:mm");
-	
+	@SuppressLint("SimpleDateFormat")
+	private static final SimpleDateFormat PandoraDateFormatter = new SimpleDateFormat("ddMMyy HHmmss");
+
 	private static final Pattern realNumber = Pattern.compile("\\d+\\.\\d+");
 
 	@Override
@@ -70,9 +72,9 @@ public class SMSReceiver extends BroadcastReceiver
 
 		StringBuilder messageBuilder = new StringBuilder();
 		Object[] pdus = (Object[]) extras.get("pdus");
-		for (int i = 0; i < pdus.length; i++)
+		for (Object pdu : pdus)
 		{
-			SmsMessage msg = SmsMessage.createFromPdu((byte[]) pdus[i]);
+			SmsMessage msg = SmsMessage.createFromPdu((byte[]) pdu);
 			String text = msg.getMessageBody();
 			Sender = msg.getDisplayOriginatingAddress();
 			Log.w(TAG, "Sender: " + Sender);
@@ -89,6 +91,7 @@ public class SMSReceiver extends BroadcastReceiver
 		if (! parseXexunTK102(text, tracker) &&
 			! parseJointechJT600(text, tracker) &&
 			! parseTK102Clone1(text, tracker) &&
+			! parsePandoraAlarm(text, tracker) &&
 			! (parseFlexMode(text, tracker) && flexMode) )
 			return;
 			
@@ -152,6 +155,9 @@ public class SMSReceiver extends BroadcastReceiver
 					defaults |= Notification.DEFAULT_VIBRATE;
 				builder.setDefaults(defaults);
 				builder.setAutoCancel(true);
+				builder.setCategory(NotificationCompat.CATEGORY_MESSAGE);
+				builder.setVisibility(NotificationCompat.VISIBILITY_PRIVATE);
+				builder.setGroup("androzic");
 				Notification notification = builder.build();
 				NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 				notificationManager.notify((int) tracker._id, notification);
@@ -167,18 +173,13 @@ public class SMSReceiver extends BroadcastReceiver
 	private boolean parseFlexMode(String text, Tracker tracker)
 	{
 		Log.w(TAG, "parseFlexMode");
-		
-        
-		//Pattern pattern = Pattern.compile("(-?\\d{1,3},\\d{5,6}[SN]?).+(-?\\d{1,3},\\d{5,6}[WE]?)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 		Pattern pattern = Pattern.compile("(-?\\d+(?:\\.|,)\\d{5,6}[SN]?)[^\\d-]+(-?\\d+(?:\\.|,)\\d{5,6}[WE]?)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 		Matcher m = pattern.matcher(text);
 		if (! m.find())
 			return false;
 		
 		Log.w(TAG, "parseFlexMode - match " + m.group(0));
-		
-		
-		
+
 		String latitude = m.group(1);
 		String longitude = m.group(2);
 
@@ -211,8 +212,7 @@ public class SMSReceiver extends BroadcastReceiver
 		m = pattern.matcher(text);
 		if ( m.find())
 		{
-			String imei = m.group(1);
-			tracker.imei =  imei;
+			tracker.imei =  m.group(1);
 		}
 		
 		pattern = Pattern.compile("bat(?:tery)?[^\\d]{0,2}(\\d{1,3})[^\\d]", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
@@ -253,9 +253,6 @@ public class SMSReceiver extends BroadcastReceiver
 		lat:51.123456lon:39.123456 speed:0.00 T:13/09/30 10:27 bat:100% 3597100123456789 http://maps.google.com
 		
 		*/		
-
-		Log.w(TAG, "parseTK102Clone1");
-		
 		Pattern pattern = Pattern.compile("(.*)?\\s?lat:\\s?([^\\sl]+)\\s?long?:\\s?([^\\s]+)\\s?speed:\\s?([\\d\\.]+)\\s?T:?([\\d/:\\.\\s]+)\\s?bat:([^%]+)%\\s?(\\d+)?(.+)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 		Matcher m = pattern.matcher(text);
 		if (! m.matches())
@@ -449,6 +446,38 @@ public class SMSReceiver extends BroadcastReceiver
 		message = m.group(8);
 		if (! "".equals(message))
 			tracker.message = message;
+
+		return true;
+	}
+
+	private boolean parsePandoraAlarm(String text, Tracker tracker)
+	{
+		// 281014 192236 http://maps.yandex.ru/?ll=37.645933,55.813863&z=15&l=sat&pt=37.645933,55.813863
+		Pattern pattern = Pattern.compile("(\\d{6}\\s\\d{6})\\s+http://maps\\.yandex\\.ru/\\?ll=([\\d\\.]+),([\\d\\.]+)");
+		Matcher m = pattern.matcher(text);
+		if (! m.find())
+			return false;
+
+		String latitude = m.group(3);
+		String longitude = m.group(2);
+
+		double coords[] = CoordinateParser.parse(latitude + " " + longitude);
+		if (Double.isNaN(coords[0]) || Double.isNaN(coords[1]))
+			return false;
+
+		tracker.latitude = coords[0];
+		tracker.longitude = coords[1];
+
+		String time = m.group(1);
+		try
+		{
+			Date date = PandoraDateFormatter.parse(time);
+			tracker.time = date.getTime();
+		}
+		catch (Exception e)
+		{
+			Log.e(TAG, "Date error", e);
+		}
 
 		return true;
 	}
