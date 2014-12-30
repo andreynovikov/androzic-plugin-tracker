@@ -19,16 +19,17 @@
     <string name="menu_delete">Delete</string>
     <string name="menu_change">Change</string>
     <string name="menu_remove">Remove</string>
+    <string name="menu_help">Help</string>
     <string name="pref_settings_title">Settings</string>
     <string name="pref_tracker_title">Trackers</string>
     <string name="pref_tracker_notifications_title">Notifications</string>
     <string name="pref_tracker_vibrate_title">Vibrate</string>
     <string name="pref_tracker_concealsms_title">Conceal text messages</string>
     <string name="pref_tracker_markercolor_title">Marker color</string>
-    <string name="pref_tracker_use_flex_mode_title">Flex mode SMS detection</string>
+    <string name="pref_tracker_use_flex_mode_title">Flex mode message detection</string>
+    <string name="pref_tracker_use_flex_mode_summary">Use flex message parser for various flavors of popular Chinese trackers</string>
     <string name="pref_tracker_footprints_count_title">Footprints count</string>
     <string name="notif_text">New data from %s was received</string>
-
-    <string name="pref_tracker_footprints_count_summary">Numbers of tracker history points to be displayed</string>
+    <string name="pref_tracker_footprints_count_summary">Number of tracker history points to be displayed</string>
     
 </resources>

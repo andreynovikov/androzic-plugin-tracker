@@ -7,13 +7,13 @@ import android.graphics.Bitmap;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.RemoteException;
+import android.support.annotation.NonNull;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.PopupMenu;
 import android.widget.TextView;
@@ -62,8 +62,8 @@ public class TrackerProperties extends Activity
 			registerForContextMenu(icon);
 		}
 
-		((Button) findViewById(R.id.done_button)).setOnClickListener(doneOnClickListener);
-		((Button) findViewById(R.id.cancel_button)).setOnClickListener(new OnClickListener() {
+		findViewById(R.id.done_button).setOnClickListener(doneOnClickListener);
+		findViewById(R.id.cancel_button).setOnClickListener(new OnClickListener() {
 			public void onClick(View v)
 			{
 				finish();
@@ -79,7 +79,7 @@ public class TrackerProperties extends Activity
 	}
 
 	@Override
-	protected void onRestoreInstanceState(Bundle savedInstanceState)
+	protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState)
 	{
 		super.onRestoreInstanceState(savedInstanceState);
 		iconValue = savedInstanceState.getString("icon");
@@ -87,7 +87,7 @@ public class TrackerProperties extends Activity
 	}
 
 	@Override
-	protected void onSaveInstanceState(Bundle outState)
+	protected void onSaveInstanceState(@NonNull Bundle outState)
 	{
 		super.onSaveInstanceState(outState);
 		outState.putString("icon", iconValue);
@@ -122,7 +122,7 @@ public class TrackerProperties extends Activity
 			case R.id.remove:
 				iconValue = null;
 				ImageButton icon = (ImageButton) findViewById(R.id.icon_button);
-				icon.setImageDrawable(this.getResources().getDrawable(R.drawable.ic_action_halt));
+				icon.setImageDrawable(this.getResources().getDrawable(R.drawable.ic_highlight_remove_white_24dp));
 				break;
 		}
 		return true;
@@ -180,6 +180,6 @@ public class TrackerProperties extends Activity
 		if (b != null)
 			iconButton.setImageBitmap(b);
 		else
-			iconButton.setImageDrawable(this.getResources().getDrawable(R.drawable.ic_action_halt));
+			iconButton.setImageDrawable(this.getResources().getDrawable(R.drawable.ic_highlight_remove_white_24dp));
 	}
 }

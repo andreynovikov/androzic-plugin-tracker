@@ -315,11 +315,9 @@ public class SMSReceiver extends BroadcastReceiver
 	private boolean parseJointechJT600(String text, Tracker tracker)
 	{
 		// Jointech JT600
-		// jeson,09-28 12:11:02,Speed:32km/h,Battery:80%,GPS:13,STANDARD,
-		// http://maps.google.com/?q=22.549737N,114.076685E
+		// jeson,09-28 12:11:02,Speed:32km/h,Battery:80%,GPS:13,STANDARD,http://maps.google.com/?q=22.549737N,114.076685E
 		// 3110701703,09-28 12:11:02,Speed:0km/h,Charging,Base Station,STANDARD,Cell ID:4195,LAC:230
-		// 3110701703,04-24 22:44:33,Speed:0km/h,Battery:90%,GPS:8,STANDARD,
-		// http://maps.google.com/?q=60.010245N,30.288323E
+		// 3110701703,04-24 22:44:33,Speed:0km/h,Battery:90%,GPS:8,STANDARD,http://maps.google.com/?q=60.010245N,30.288323E
 		// ALM,SOS,3110701703,09-28 12:11:02,Speed:32km/h,Battery:80%,GPS:13,STANDARD,http://maps.google.com/?q=22.549737N,114.076685E
 		// http://fiddle.re/yv1h6
 		Pattern pattern = Pattern.compile("(?:ALM,)?(?:(.*),)?([^,]+),([\\d\\-:\\s]+),(?:Speed:(\\d+)km/h,)?(?:Battery:(\\d+)%|Charging),[^,]+,[^,]+,(?:\\r?\\n)?http://maps\\.google\\.com/\\?q=([^,]+),(.+)");

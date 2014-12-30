@@ -1,6 +1,6 @@
 /*
  * Androzic - android navigation client that uses OziExplorer maps (ozf2, ozfx3).
- * Copyright (C) 2010-2013 Andrey Novikov <http://andreynovikov.info/>
+ * Copyright (C) 2010-2014 Andrey Novikov <http://andreynovikov.info/>
  * 
  * This file is part of Androzic application.
  * 
@@ -23,10 +23,6 @@ package com.androzic.plugin.tracker;
 import java.util.Calendar;
 import java.util.Date;
 
-import net.londatiga.android.ActionItem;
-import net.londatiga.android.QuickAction;
-import net.londatiga.android.QuickAction.OnActionItemClickListener;
-import android.app.ListActivity;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.ContentProviderClient;
@@ -34,7 +30,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.content.res.Resources;
+import android.content.pm.ResolveInfo;
+import android.content.pm.ServiceInfo;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
@@ -43,6 +40,12 @@ import android.location.Location;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.support.v7.app.ActionBarActivity;
+import android.support.v7.internal.view.SupportMenuInflater;
+import android.support.v7.internal.view.menu.MenuBuilder;
+import android.support.v7.internal.view.menu.MenuPopupHelper;
+import android.support.v7.internal.view.menu.MenuPresenter;
+import android.support.v7.widget.Toolbar;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -51,9 +54,9 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.CursorAdapter;
 import android.widget.ListView;
-import android.widget.PopupWindow;
 import android.widget.TextView;
 
 import com.androzic.data.Tracker;
@@ -65,63 +68,43 @@ import com.androzic.provider.PreferencesContract;
 import com.androzic.util.Geo;
 import com.androzic.util.StringFormatter;
 
-public class TrackerList extends ListActivity
+public class TrackerList extends ActionBarActivity implements AdapterView.OnItemClickListener, MenuBuilder.Callback, MenuPresenter.Callback
 {
 	private static final String TAG = "TrackerList";
 	private TrackerDataAccess dataAccess;
 
+	private ListView listView;
 	private TrackerListAdapter adapter;
 
 	private ILocationRemoteService locationService = null;
-	private Location currentLocation = new Location("fake");
+	private final Location currentLocation = new Location("fake");
 
 	private int coordinatesFormat = 0;
 	private double speedFactor = 1;
 	private String speedAbbr = "m/s";
 
-	private static final int qaTrackerVisible = 1;
-	private static final int qaTrackerNavigate = 2;
-	private static final int qaTrackerEdit = 3;
-	private static final int qaTrackerDelete = 4;
-
-	private QuickAction quickAction;
 	private int selectedPosition;
 	private Drawable selectedBackground;
+	private int accentColor;
 
 	@Override
 	public void onCreate(final Bundle savedInstanceState)
 	{
 		Log.w(TAG, ">>>> onCreate");
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.list_with_empty_view);
+		setContentView(R.layout.act_trackerlist);
 
-		TextView emptyView = (TextView) getListView().getEmptyView();
-		if (emptyView != null)
-			emptyView.setText(R.string.msg_empty_list);
+		Toolbar toolbar = (Toolbar) findViewById(R.id.action_toolbar);
+		setSupportActionBar(toolbar);
+
+		listView = (ListView) findViewById(android.R.id.list);
+		TextView emptyView = (TextView) findViewById(android.R.id.empty);
+		emptyView.setText(R.string.msg_empty_list);
+		listView.setEmptyView(emptyView);
+
+		accentColor = getResources().getColor(R.color.theme_accent_color);
 
 		readAndrozicPreferences();
-
-		// Prepare quick actions menu
-		Resources resources = getResources();
-		quickAction = new QuickAction(this);
-		quickAction.addActionItem(new ActionItem(qaTrackerVisible, getString(R.string.menu_view), resources.getDrawable(R.drawable.ic_action_show)));
-		quickAction.addActionItem(new ActionItem(qaTrackerNavigate, getString(R.string.menu_navigate), resources.getDrawable(R.drawable.ic_action_directions)));
-		quickAction.addActionItem(new ActionItem(qaTrackerEdit, getString(R.string.menu_edit), resources.getDrawable(R.drawable.ic_action_edit)));
-		quickAction.addActionItem(new ActionItem(qaTrackerDelete, getString(R.string.menu_delete), resources.getDrawable(R.drawable.ic_action_trash)));
-
-		quickAction.setOnActionItemClickListener(trackerActionItemClickListener);
-		quickAction.setOnDismissListener(new PopupWindow.OnDismissListener() {
-			@Override
-			public void onDismiss()
-			{
-				View v = getListView().findViewWithTag("selected");
-				if (v != null)
-				{
-					v.setBackgroundDrawable(selectedBackground);
-					v.setTag(null);
-				}
-			}
-		});
 
 		// Create database connection
 		dataAccess = new TrackerDataAccess(this);
@@ -130,7 +113,8 @@ public class TrackerList extends ListActivity
 		
 		// Bind list adapter
 		adapter = new TrackerListAdapter(this, cursor);
-		setListAdapter(adapter);
+		listView.setAdapter(adapter);
+		listView.setOnItemClickListener(this);
 
 		Log.w(TAG, "Bind - OK");
 		
@@ -186,7 +170,7 @@ public class TrackerList extends ListActivity
 	{
 		switch (item.getItemId())
 		{
-			case R.id.menuPreferences:
+			case R.id.action_settings:
 				startActivity(new Intent(this, Preferences.class));
 				return true;
 		}
@@ -194,13 +178,20 @@ public class TrackerList extends ListActivity
 	}
 
 	@Override
-	protected void onListItemClick(ListView lv, View v, int position, long id)
+	public void onItemClick(AdapterView<?> l, View v, int position, long id)
 	{
 		v.setTag("selected");
 		selectedPosition = position;
 		selectedBackground = v.getBackground();
-		v.setBackgroundResource(R.drawable.list_selector_background_focus);
-		quickAction.show(v);
+		v.setBackgroundColor(accentColor);
+		// https://gist.github.com/mediavrog/9345938#file-iconizedmenu-java-L55
+		MenuBuilder menu = new MenuBuilder(this);
+		menu.setCallback(this);
+		MenuPopupHelper popup = new MenuPopupHelper(this, menu, v.findViewById(R.id.name));
+		popup.setForceShowIcon(true);
+		popup.setCallback(this);
+		new SupportMenuInflater(this).inflate(R.menu.tracker_popup, menu);
+		popup.show();
 	}
 
 	@Override
@@ -212,7 +203,14 @@ public class TrackerList extends ListActivity
 
 	private void connect()
 	{
-		bindService(new Intent(BaseLocationService.ANDROZIC_LOCATION_SERVICE), locationConnection, BIND_AUTO_CREATE);
+		Intent intent = new Intent(BaseLocationService.ANDROZIC_LOCATION_SERVICE);
+		ResolveInfo ri = getPackageManager().resolveService(intent, 0);
+		// This generally can not happen because plugin can be run only from parent application
+		if (ri == null)
+			return;
+		ServiceInfo service = ri.serviceInfo;
+		intent.setComponent(new ComponentName(service.applicationInfo.packageName, service.name));
+		bindService(intent, locationConnection, BIND_AUTO_CREATE);
 	}
 
 	private void disconnect()
@@ -225,6 +223,7 @@ public class TrackerList extends ListActivity
 			}
 			catch (RemoteException e)
 			{
+				e.printStackTrace();
 			}
 			unbindService(locationConnection);
 			locationService = null;
@@ -329,50 +328,76 @@ public class TrackerList extends ListActivity
 		}
 	}
 
-	private OnActionItemClickListener trackerActionItemClickListener = new OnActionItemClickListener() {
-		@Override
-		public void onItemClick(QuickAction source, int pos, int actionId)
-		{
-			Application application = (Application) getApplication();
-			Cursor cursor = (Cursor) adapter.getItem(selectedPosition);
-			Tracker tracker = dataAccess.getFullInfoTracker(cursor);
+	@Override
+	public boolean onMenuItemSelected(MenuBuilder builder, MenuItem item)
+	{
+		Application application = (Application) getApplication();
+		Cursor cursor = (Cursor) adapter.getItem(selectedPosition);
+		Tracker tracker = dataAccess.getFullInfoTracker(cursor);
 
-			switch (actionId)
+		switch (item.getItemId())
+		{
+			case R.id.action_view:
+				Log.d(TAG, "Passing coordinates to Androzic");
+				Intent i = new Intent("com.androzic.CENTER_ON_COORDINATES");
+				i.putExtra("lat", tracker.latitude);
+				i.putExtra("lon", tracker.longitude);
+				sendBroadcast(i);
+				return true;
+			case R.id.action_navigate:
+				Intent intent = new Intent(BaseNavigationService.NAVIGATE_MAPOBJECT_WITH_ID);
+				intent.putExtra(BaseNavigationService.EXTRA_ID, tracker.moid);
+				// This should not happen but let us check
+				if (tracker.moid > 0)
+					startService(intent);
+				finish();
+				return true;
+			case R.id.action_edit:
+				startActivityForResult(new Intent(TrackerList.this, TrackerProperties.class).putExtra("sender", tracker.sender), 0);
+				return true;
+			case R.id.action_delete:
+				try
+				{
+					application.removeTrackerFromMap(dataAccess, tracker);
+				}
+				catch (RemoteException e)
+				{
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				dataAccess.removeTracker(tracker);
+				updateData();
+				return true;
+		}
+		return false;
+	}
+
+	@Override
+	public void onMenuModeChange(MenuBuilder builder)
+	{
+	}
+
+	@SuppressWarnings("deprecation")
+	@Override
+	public void onCloseMenu(MenuBuilder menu, boolean allMenusAreClosing)
+	{
+		selectedPosition = -1;
+		if (allMenusAreClosing && listView != null)
+		{
+			View v = listView.findViewWithTag("selected");
+			if (v != null)
 			{
-				case qaTrackerVisible:
-					Log.d(TAG, "Passing coordinates to Androzic");
-					Intent i = new Intent("com.androzic.CENTER_ON_COORDINATES");
-					i.putExtra("lat", tracker.latitude);
-					i.putExtra("lon", tracker.longitude);
-					sendBroadcast(i);
-					break;
-				case qaTrackerNavigate:
-					Intent intent = new Intent(BaseNavigationService.NAVIGATE_MAPOBJECT_WITH_ID);
-					intent.putExtra(BaseNavigationService.EXTRA_ID, tracker.moid);
-					// This should not happen but let us check
-					if (tracker.moid > 0)
-						startService(intent);
-					finish();
-					break;
-				case qaTrackerEdit:
-					startActivityForResult(new Intent(TrackerList.this, TrackerProperties.class).putExtra("sender", tracker.sender), 0);
-					break;
-				case qaTrackerDelete:
-					try
-					{
-						application.removeTrackerFromMap(dataAccess, tracker);
-					}
-					catch (RemoteException e)
-					{
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-					dataAccess.removeTracker(tracker);
-					updateData();
-					break;
+				v.setBackgroundDrawable(selectedBackground);
+				v.setTag(null);
 			}
 		}
-	};
+	}
+
+	@Override
+	public boolean onOpenSubMenu(MenuBuilder menu)
+	{
+		return false;
+	}
 
 	private void readAndrozicPreferences()
 	{
@@ -448,7 +473,7 @@ public class TrackerList extends ListActivity
 		{
 			Log.d(TAG, "Location service disconnected");
 			locationService = null;
-			currentLocation = new Location("fake");
+			currentLocation.set(new Location("fake"));
 			if (adapter != null)
 				adapter.notifyDataSetChanged();
 		}

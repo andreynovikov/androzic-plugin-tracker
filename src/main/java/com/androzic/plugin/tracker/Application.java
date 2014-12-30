@@ -101,7 +101,7 @@ public class Application extends BaseApplication
 		
 		if (footprintsCount > 0 && cursor.moveToNext())
 		{
-			TrackerFootprins footprint = new TrackerFootprins();
+			TrackerFootprins footprint;
 			
 			do
 			{
@@ -239,7 +239,7 @@ public class Application extends BaseApplication
 			dataAccess.close();
 			return;
 		}
-		Set<Long> moids = new HashSet<Long>();
+		Set<Long> moids = new HashSet<>();
 		do
 		{
 			Tracker tracker = dataAccess.getFullInfoTracker(cursor);

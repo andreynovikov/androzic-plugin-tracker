@@ -1,31 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
-    android:title="@string/pref_settings_title" >
+                  xmlns:app="http://schemas.android.com/apk/res-auto"
+                  android:title="@string/pref_tracker_title">
 
     <CheckBoxPreference
         android:defaultValue="@bool/def_notifications"
         android:key="@string/pref_tracker_notifications"
-        android:title="@string/pref_tracker_notifications_title" />
+        android:title="@string/pref_tracker_notifications_title"/>
     <CheckBoxPreference
         android:defaultValue="@bool/def_vibrate"
+        android:dependency="@string/pref_tracker_notifications"
         android:key="@string/pref_tracker_vibrate"
-        android:title="@string/pref_tracker_vibrate_title"
-        android:dependency="@string/pref_tracker_notifications" />
+        android:title="@string/pref_tracker_vibrate_title"/>
     <CheckBoxPreference
         android:defaultValue="@bool/def_concealsms"
         android:key="@string/pref_tracker_concealsms"
-        android:title="@string/pref_tracker_concealsms_title" />
-    <com.androzic.ui.ColorPreference
+        android:title="@string/pref_tracker_concealsms_title"/>
+    <afzkl.development.colorpickerview.preference.ColorPickerPreference
         android:defaultValue="@color/marker"
         android:dialogTitle="@string/pref_tracker_markercolor_title"
         android:key="@string/pref_tracker_markercolor"
-        android:title="@string/pref_tracker_markercolor_title" />
+        android:title="@string/pref_tracker_markercolor_title"
+        app:colorPickerSliderColor="@color/theme_accent_color"
+        app:showDialogTitle="true"/>
+
     <CheckBoxPreference
         android:defaultValue="@bool/def_flex_mode"
         android:key="@string/pref_tracker_use_flex_mode"
-        android:title="@string/pref_tracker_use_flex_mode_title" />    
-	
-	<com.androzic.ui.preference.HelpfulEditTextPreference
+        android:title="@string/pref_tracker_use_flex_mode_title"/>
+
+    <EditTextPreference
         android:defaultValue="@string/def_tracker_footprints_count"
         android:inputType="number"
         android:key="@string/pref_tracker_footprints_count"
@@ -33,6 +37,6 @@
         android:numeric="integer"
         android:singleLine="true"
         android:summary="@string/pref_tracker_footprints_count_summary"
-        android:title="@string/pref_tracker_footprints_count_title" />
+        android:title="@string/pref_tracker_footprints_count_title"/>
 
 </PreferenceScreen>

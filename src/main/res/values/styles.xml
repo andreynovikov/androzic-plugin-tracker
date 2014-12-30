@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.Application" parent="Theme.AppCompat.NoActionBar">
+        <item name="colorPrimary">@color/theme_primary_color</item>
+        <item name="colorPrimaryDark">@color/theme_primary_darker_color</item>
+		<item name="colorAccent">@color/theme_accent_color</item>
+        <item name="android:textColorPrimary">@android:color/white</item>
+        <item name="android:windowBackground">@color/theme_primary_darker_color</item>
+        <item name="android:colorBackground">@color/theme_primary_darker_color</item>
+    </style>
+
+    <style name="ThemeOverlay.ActionBar" parent="ThemeOverlay.AppCompat.ActionBar">
+        <item name="android:background">@color/theme_primary_color</item>
+    </style>
+
+</resources>
