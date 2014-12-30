@@ -24,6 +24,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.TimeZone;
 
 import android.content.ContentProviderClient;
 import android.content.ContentUris;
@@ -111,6 +112,7 @@ public class Application extends BaseApplication
 				
 				Calendar calendar = Calendar.getInstance();
 				calendar.setTimeInMillis(footprint.time);
+				calendar.setTimeZone(TimeZone.getDefault());
 				Date date = calendar.getTime();
 				String time = DateFormat.getTimeFormat(this).format(date);
 				
@@ -152,7 +154,6 @@ public class Application extends BaseApplication
 					dataAccess.saveFootprintMoid(footprint._id, 0);
 				}
 			}
-			
 		}
 		
 		cursor.close();
