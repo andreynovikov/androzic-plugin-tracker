@@ -1,12 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.androzic.plugin.tracker"
-    android:versionCode="2"
-    android:versionName="1.1" >
-
-    <uses-sdk
-        android:minSdkVersion="7"
-        android:targetSdkVersion="11" />
+    package="com.androzic.plugin.tracker" >
 
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -20,7 +14,8 @@
         android:name=".Application"
         android:allowBackup="false"
         android:icon="@drawable/ic_launcher"
-        android:label="@string/app_name" >
+        android:label="@string/app_name"
+        android:theme="@style/Theme.Application" >
         <activity
             android:name=".TrackerList"
             android:label="@string/pref_tracker_title" >
