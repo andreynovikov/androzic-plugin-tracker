@@ -42,7 +42,7 @@ import android.util.Log;
 
 import com.androzic.BaseApplication;
 import com.androzic.data.Tracker;
-import com.androzic.data.TrackerFootprins;
+import com.androzic.data.TrackerFootprints;
 import com.androzic.provider.DataContract;
 
 public class Application extends BaseApplication
@@ -93,16 +93,13 @@ public class Application extends BaseApplication
 		Cursor cursor = dataAccess.getTrackerFootprints(tracker._id);
 		
 		SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-		int footprintsCount = Integer.parseInt(sharedPreferences.getString(getString(R.string.pref_tracker_footprints_count),
-				                               							   getString(R.string.def_tracker_footprints_count) 
-				                               							   )
-				                              );
+		int footprintsCount = Integer.parseInt(sharedPreferences.getString(getString(R.string.pref_tracker_footprints_count), getString(R.string.def_tracker_footprints_count)));
 
 		cursor.moveToFirst(); //skip first point
 		
 		if (footprintsCount > 0 && cursor.moveToNext())
 		{
-			TrackerFootprins footprint;
+			TrackerFootprints footprint;
 			
 			do
 			{
@@ -143,7 +140,7 @@ public class Application extends BaseApplication
 			}
 			while (cursor.moveToNext() && footprintsCount > 0);
 			
-			if(!cursor.isAfterLast())//erase last point from map for preserve displayed footprints count
+			if(!cursor.isAfterLast()) //erase last point from map to preserve displayed footprints count
 			{
 				footprint = dataAccess.getTrackerFootprint(cursor);
 				if (footprint.moid > 0)
@@ -206,23 +203,18 @@ public class Application extends BaseApplication
 		{
 			do
 			{
-				TrackerFootprins footprint = dataAccess.getTrackerFootprint(footprintsCursor);
+				TrackerFootprints footprint = dataAccess.getTrackerFootprint(footprintsCursor);
 				if (footprint.moid > 0)
 				{
 					uri = ContentUris.withAppendedId(DataContract.MAPOBJECTS_URI, footprint.moid);
 					contentProvider.delete(uri, null, null);
-					
 					dataAccess.saveFootprintMoid(footprint._id, 0);
 				}
-				
-				
 			}
 			while (footprintsCursor.moveToNext());
 		}
 		
 		footprintsCursor.close();
-
-		
 		contentProvider.release();
 	}
 
@@ -256,14 +248,12 @@ public class Application extends BaseApplication
 			{
 				do
 				{
-					TrackerFootprins footprint = dataAccess.getTrackerFootprint(footprintsCursor);
+					TrackerFootprints footprint = dataAccess.getTrackerFootprint(footprintsCursor);
 					if (footprint.moid > 0)
 					{
 						moids.add(footprint.moid);
 						dataAccess.saveFootprintMoid(footprint._id, 0);
 					}
-					
-					
 				}
 				while (footprintsCursor.moveToNext());
 			}

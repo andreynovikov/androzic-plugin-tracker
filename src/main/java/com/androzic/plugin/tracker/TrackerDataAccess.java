@@ -27,7 +27,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
-import com.androzic.data.TrackerFootprins;
+import com.androzic.data.TrackerFootprints;
 import com.androzic.data.Tracker;
 
 /**
@@ -290,11 +290,11 @@ class TrackerDataAccess extends SQLiteOpenHelper
 		return tracker;
 	}
 
-	public TrackerFootprins getTrackerFootprint(Cursor cursor)
+	public TrackerFootprints getTrackerFootprint(Cursor cursor)
 	{
 		Log.w(TAG, ">>>> getTrackerFootprint(Cursor cursor)");
 		
-		TrackerFootprins point = new TrackerFootprins();
+		TrackerFootprints point = new TrackerFootprints();
 		
 		if (cursor.getCount() == 0)
 		{
