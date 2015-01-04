@@ -8,8 +8,7 @@
     <string name="full">Full</string>
     <string name="low">Low</string>
     <string name="name">Name</string>
-    <string name="icon">Icon</string>
-    <string name="done">Done</string>
+    <string name="save">Save</string>
     <string name="cancel">Cancel</string>
     <string name="msg_empty_list">Nothing to display</string>
     <string name="menu_preferences">Settings</string>
@@ -26,10 +25,10 @@
     <string name="pref_tracker_vibrate_title">Vibrate</string>
     <string name="pref_tracker_concealsms_title">Conceal text messages</string>
     <string name="pref_tracker_markercolor_title">Marker color</string>
-    <string name="pref_tracker_use_flex_mode_title">Flex mode message detection</string>
-    <string name="pref_tracker_use_flex_mode_summary">Use flex message parser for various flavors of popular Chinese trackers</string>
+    <string name="pref_tracker_use_flex_mode_title">Flexible message parser</string>
+    <string name="pref_tracker_use_flex_mode_summary">Use flexible message parser for various flavors of popular Chinese trackers</string>
     <string name="pref_tracker_footprints_count_title">Footprints count</string>
-    <string name="notif_text">New data from %s was received</string>
     <string name="pref_tracker_footprints_count_summary">Number of tracker history points to be displayed</string>
-    
+    <string name="notif_text">New data from %s was received</string>
+
 </resources>
