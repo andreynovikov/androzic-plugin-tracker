@@ -7,6 +7,6 @@
 	<string name="pref_tracker_use_flex_mode" translatable="false">flex_mode</string>
 	<string name="pref_tracker_footprints_count" translatable="false">footprints_count</string>
 	
-	<string name="def_tracker_footprints_count" translatable="false">10</string>
+	<string name="def_tracker_footprints_count" translatable="false">0</string>
 	
 </resources>

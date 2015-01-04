@@ -30,7 +30,7 @@
         android:defaultValue="@bool/def_flex_mode"
         android:key="@string/pref_tracker_use_flex_mode"
         android:title="@string/pref_tracker_use_flex_mode_title"/>
-
+<!--
     <EditTextPreference
         android:defaultValue="@string/def_tracker_footprints_count"
         android:inputType="number"
@@ -40,5 +40,5 @@
         android:singleLine="true"
         android:summary="@string/pref_tracker_footprints_count_summary"
         android:title="@string/pref_tracker_footprints_count_title"/>
-
+-->
 </PreferenceScreen>
