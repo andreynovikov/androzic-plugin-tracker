@@ -1,6 +1,6 @@
 /*
  * Androzic - android navigation client that uses OziExplorer maps (ozf2, ozfx3).
- * Copyright (C) 2010-2013 Andrey Novikov <http://andreynovikov.info/>
+ * Copyright (C) 2010-2015 Andrey Novikov <http://andreynovikov.info/>
  * 
  * This file is part of Androzic application.
  * 
@@ -27,7 +27,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
-import com.androzic.data.TrackerFootprints;
+import com.androzic.data.TrackerFootprint;
 import com.androzic.data.Tracker;
 
 /**
@@ -76,12 +76,12 @@ class TrackerDataAccess extends SQLiteOpenHelper
 	 */
 	public static final String SENDER = "sender";
 	/**
-	 * Icon
+	 * Marker
 	 * <P>
 	 * Type: TEXT
 	 * </P>
 	 */
-	public static final String ICON = "icon";
+	public static final String MARKER = "icon";
 	/**
 	 * Latitude
 	 * <P>
@@ -132,7 +132,7 @@ class TrackerDataAccess extends SQLiteOpenHelper
 	public static final String _POINT_ID = "_point_id";
 	
 	private static final String[] trackerColumnsId = new String[] { _TRACKER_ID };
-	private static final String[] trackersColumnsAll = new String[] { _TRACKER_ID, MOID, TITLE, ICON, IMEI, SENDER /*, LATITUDE, LONGITUDE, SPEED, BATTERY, SIGNAL, MODIFIED*/ };
+	private static final String[] trackersColumnsAll = new String[] { _TRACKER_ID, MOID, TITLE, MARKER, IMEI, SENDER /*, LATITUDE, LONGITUDE, SPEED, BATTERY, SIGNAL, MODIFIED*/ };
 
 	private static final String[] pointColumnsId = new String[] { _POINT_ID };
 	private static final String[] pointColumnsAll = new String[] { _POINT_ID, LATITUDE, LONGITUDE, SPEED, BATTERY, SIGNAL, TIME };
@@ -162,8 +162,8 @@ class TrackerDataAccess extends SQLiteOpenHelper
 			// Preserve user defined properties
 			if ("".equals(tracker.name))
 				tracker.name = dbTracker.name;
-			if ("".equals(tracker.image))
-				tracker.image = dbTracker.image;
+			if ("".equals(tracker.marker))
+				tracker.marker = dbTracker.marker;
 
 			// Preserve map object ID if it is no set
 			if (tracker.moid == Long.MIN_VALUE)
@@ -172,8 +172,10 @@ class TrackerDataAccess extends SQLiteOpenHelper
 			// Copy tracker ID
 			tracker._id = dbTracker._id;
 		}
-		
-		
+
+		if ("__remove__".equals(tracker.marker))
+			tracker.marker = "";
+
 		// Set default name for new tracker
 		if ("".equals(tracker.name))
 			tracker.name = tracker.sender;
@@ -182,7 +184,7 @@ class TrackerDataAccess extends SQLiteOpenHelper
 		
 		values.put(MOID, tracker.moid);
 		values.put(TITLE, tracker.name);
-		values.put(ICON, tracker.image);
+		values.put(MARKER, tracker.marker);
 		values.put(IMEI, tracker.imei);
 		values.put(SENDER, tracker.sender);
 				
@@ -198,8 +200,7 @@ class TrackerDataAccess extends SQLiteOpenHelper
 		}
 		
 		
-		if (tracker._id != -1 
-		    && ( dbTracker == null || ( dbTracker != null && tracker.time != dbTracker.time )) )
+		if (tracker._id != -1 && ( dbTracker == null || ( dbTracker != null && tracker.time != dbTracker.time )) )
 		{
 			values.clear();
 			values.put(TRACKER_ID, tracker._id);
@@ -277,7 +278,7 @@ class TrackerDataAccess extends SQLiteOpenHelper
 		tracker.name = cursor.getString(cursor.getColumnIndex(TITLE));
 		tracker.imei = cursor.getString(cursor.getColumnIndex(IMEI));
 		tracker.sender = cursor.getString(cursor.getColumnIndex(SENDER));
-		tracker.image = cursor.getString(cursor.getColumnIndex(ICON));
+		tracker.marker = cursor.getString(cursor.getColumnIndex(MARKER));
 		
 		
 		tracker.latitude = historyCur.getDouble(historyCur.getColumnIndex(LATITUDE));
@@ -290,11 +291,11 @@ class TrackerDataAccess extends SQLiteOpenHelper
 		return tracker;
 	}
 
-	public TrackerFootprints getTrackerFootprint(Cursor cursor)
+	public TrackerFootprint getTrackerFootprint(Cursor cursor)
 	{
 		Log.w(TAG, ">>>> getTrackerFootprint(Cursor cursor)");
 		
-		TrackerFootprints point = new TrackerFootprints();
+		TrackerFootprint point = new TrackerFootprint();
 		
 		if (cursor.getCount() == 0)
 		{
@@ -378,7 +379,7 @@ class TrackerDataAccess extends SQLiteOpenHelper
 													   + IMEI + " TEXT," 
 													   + SENDER + " TEXT NOT NULL UNIQUE," 
 													   + TITLE + " TEXT," 
-													   + ICON + " TEXT"  
+													   + MARKER + " TEXT"
 											      + ");");
 		
 		db.execSQL("CREATE TABLE " + TABLE_HISTORY + " (" + _POINT_ID + " INTEGER PRIMARY KEY AUTOINCREMENT," 

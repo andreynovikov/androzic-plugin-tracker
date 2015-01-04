@@ -1,6 +1,6 @@
 /*
  * Androzic - android navigation client that uses OziExplorer maps (ozf2, ozfx3).
- * Copyright (C) 2010-2014 Andrey Novikov <http://andreynovikov.info/>
+ * Copyright (C) 2010-2015 Andrey Novikov <http://andreynovikov.info/>
  * 
  * This file is part of Androzic application.
  * 
@@ -265,13 +265,17 @@ public class TrackerList extends ActionBarActivity implements AdapterView.OnItem
 			TextView t = (TextView) view.findViewById(R.id.name);
 			t.setText(tracker.name);
 			Application application = Application.getApplication();
-			Bitmap b = application.getIcon(tracker.image);
+			Bitmap b = application.getMarker(tracker.marker);
 			if (b != null)
 			{
 				Drawable drawable = new BitmapDrawable(getResources(), b);
 				drawable.setBounds(0, 0, b.getWidth(), b.getHeight());
 				t.setCompoundDrawables(drawable, null, null, null);
 				t.setCompoundDrawablePadding(b.getWidth() / 3);
+			}
+			else
+			{
+				t.setCompoundDrawables(null, null, null, null);
 			}
 			t = (TextView) view.findViewById(R.id.sender);
 			t.setText(tracker.sender);

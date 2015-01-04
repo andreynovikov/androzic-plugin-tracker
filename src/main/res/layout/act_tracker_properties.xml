@@ -10,7 +10,7 @@
         android:layout_height="wrap_content">
 
         <ImageButton
-            android:id="@+id/icon_button"
+            android:id="@+id/marker_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentRight="true"
@@ -23,12 +23,12 @@
             android:layout_height="wrap_content"
             android:layout_alignParentLeft="true"
             android:layout_alignParentTop="true"
-            android:layout_toLeftOf="@id/icon_button"
+            android:layout_toLeftOf="@id/marker_button"
             android:hint="@string/name"
             android:inputType="text"/>
 
     </RelativeLayout>
 
-    <include layout="@layout/inc_buttonbar"/>
+    <include layout="@layout/inc_savebuttonbar"/>
 
 </LinearLayout>

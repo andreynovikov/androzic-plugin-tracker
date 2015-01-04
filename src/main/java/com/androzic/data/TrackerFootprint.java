@@ -3,7 +3,7 @@
  */
 package com.androzic.data;
 
-public class TrackerFootprints extends MapObject {
+public class TrackerFootprint extends MapObject {
 	
 	public long moid;
 	public double speed;
@@ -11,7 +11,7 @@ public class TrackerFootprints extends MapObject {
 	public int battery;
 	public int signal;
 	
-	public TrackerFootprints()
+	public TrackerFootprint()
 	{
 		super();
 		speed = 0;

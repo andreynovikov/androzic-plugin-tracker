@@ -1,6 +1,6 @@
 /*
  * Androzic - android navigation client that uses OziExplorer maps (ozf2, ozfx3).
- * Copyright (C) 2010-2013 Andrey Novikov <http://andreynovikov.info/>
+ * Copyright (C) 2010-2015 Andrey Novikov <http://andreynovikov.info/>
  * 
  * This file is part of Androzic application.
  * 
@@ -42,7 +42,7 @@ import android.util.Log;
 
 import com.androzic.BaseApplication;
 import com.androzic.data.Tracker;
-import com.androzic.data.TrackerFootprints;
+import com.androzic.data.TrackerFootprint;
 import com.androzic.provider.DataContract;
 
 public class Application extends BaseApplication
@@ -65,16 +65,27 @@ public class Application extends BaseApplication
 		Log.w(TAG, "     tracker.time = " + tracker.time);
 		Log.w(TAG, "     tracker.latitude = " + tracker.latitude);
 		Log.w(TAG, "     tracker.longitude = " + tracker.longitude);
-		
+		Log.w(TAG, "     tracker.image = " + tracker.image);
+		Log.w(TAG, "     tracker.marker = " + tracker.marker);
+
 		ContentProviderClient contentProvider = getContentResolver().acquireContentProviderClient(DataContract.MAPOBJECTS_URI);
 		ContentValues values = new ContentValues();
 		values.put(DataContract.MAPOBJECT_COLUMNS[DataContract.MAPOBJECT_LATITUDE_COLUMN], tracker.latitude);
 		values.put(DataContract.MAPOBJECT_COLUMNS[DataContract.MAPOBJECT_LONGITUDE_COLUMN], tracker.longitude);
 		values.put(DataContract.MAPOBJECT_COLUMNS[DataContract.MAPOBJECT_NAME_COLUMN], tracker.name);
-		values.put(DataContract.MAPOBJECT_COLUMNS[DataContract.MAPOBJECT_IMAGE_COLUMN], tracker.image);
+		values.put(DataContract.MAPOBJECT_COLUMNS[DataContract.MAPOBJECT_MARKER_COLUMN], tracker.marker);
 		values.put(DataContract.MAPOBJECT_COLUMNS[DataContract.MAPOBJECT_BACKCOLOR_COLUMN], markerColor);
 
-		if (tracker.moid <= 0)
+		int result = 0;
+		// Try to update object if it is already registered in Androzic
+		if (tracker.moid > 0)
+		{
+			Uri uri = ContentUris.withAppendedId(DataContract.MAPOBJECTS_URI, tracker.moid);
+			// If this was stale ID then result will be 0
+			result = contentProvider.update(uri, values, null, null);
+		}
+		// If object is not registered in Androzic then add it
+		if (result == 0)
 		{
 			Uri uri = contentProvider.insert(DataContract.MAPOBJECTS_URI, values);
 			if (uri != null)
@@ -83,13 +94,7 @@ public class Application extends BaseApplication
 				dataAccess.updateTracker(tracker);
 			}
 		}
-		else
-		{
-			Uri uri = ContentUris.withAppendedId(DataContract.MAPOBJECTS_URI, tracker.moid);
-			contentProvider.update(uri, values, null, null);
-		}
-		
-		
+
 		Cursor cursor = dataAccess.getTrackerFootprints(tracker._id);
 		
 		SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
@@ -99,7 +104,7 @@ public class Application extends BaseApplication
 		
 		if (footprintsCount > 0 && cursor.moveToNext())
 		{
-			TrackerFootprints footprint;
+			TrackerFootprint footprint;
 			
 			do
 			{
@@ -120,7 +125,7 @@ public class Application extends BaseApplication
 				values.put(DataContract.MAPOBJECT_COLUMNS[DataContract.MAPOBJECT_LATITUDE_COLUMN], footprint.latitude);
 				values.put(DataContract.MAPOBJECT_COLUMNS[DataContract.MAPOBJECT_LONGITUDE_COLUMN], footprint.longitude);
 				values.put(DataContract.MAPOBJECT_COLUMNS[DataContract.MAPOBJECT_NAME_COLUMN], pointName);
-				values.put(DataContract.MAPOBJECT_COLUMNS[DataContract.MAPOBJECT_IMAGE_COLUMN], "");
+				values.put(DataContract.MAPOBJECT_COLUMNS[DataContract.MAPOBJECT_MARKER_COLUMN], "");
 				values.put(DataContract.MAPOBJECT_COLUMNS[DataContract.MAPOBJECT_BACKCOLOR_COLUMN], markerColor);
 
 				if (footprint.moid <= 0)
@@ -203,7 +208,7 @@ public class Application extends BaseApplication
 		{
 			do
 			{
-				TrackerFootprints footprint = dataAccess.getTrackerFootprint(footprintsCursor);
+				TrackerFootprint footprint = dataAccess.getTrackerFootprint(footprintsCursor);
 				if (footprint.moid > 0)
 				{
 					uri = ContentUris.withAppendedId(DataContract.MAPOBJECTS_URI, footprint.moid);
@@ -225,6 +230,7 @@ public class Application extends BaseApplication
 	 */
 	void removeMapObjects() throws RemoteException
 	{
+		Log.w(TAG, ">>>> removeMapObjects");
 		TrackerDataAccess dataAccess = new TrackerDataAccess(this);
 		Cursor cursor = dataAccess.getHeadersOfTrackers();
 		if (!cursor.moveToFirst())
@@ -241,6 +247,7 @@ public class Application extends BaseApplication
 				moids.add(tracker.moid);
 				tracker.moid = 0;
 				dataAccess.updateTracker(tracker);
+				Log.w(TAG, "updateTracker("+tracker.sender+")");
 			}
 			
 			Cursor footprintsCursor = dataAccess.getTrackerFootprints(tracker._id);
@@ -248,7 +255,7 @@ public class Application extends BaseApplication
 			{
 				do
 				{
-					TrackerFootprints footprint = dataAccess.getTrackerFootprint(footprintsCursor);
+					TrackerFootprint footprint = dataAccess.getTrackerFootprint(footprintsCursor);
 					if (footprint.moid > 0)
 					{
 						moids.add(footprint.moid);
@@ -277,22 +284,22 @@ public class Application extends BaseApplication
 	/**
 	 * Queries icon bitmap
 	 */
-	public Bitmap getIcon(String icon)
+	public Bitmap getMarker(String marker)
 	{
 		Bitmap bitmap = null;
 
-		if (icon == null || "".equals(icon))
+		if (marker == null || "".equals(marker))
 			return null;
 
 		// Resolve content provider
-		ContentProviderClient client = getContentResolver().acquireContentProviderClient(DataContract.ICONS_URI);
-		Uri uri = Uri.withAppendedPath(DataContract.ICONS_URI, icon);
+		ContentProviderClient client = getContentResolver().acquireContentProviderClient(DataContract.MARKERS_URI);
+		Uri uri = Uri.withAppendedPath(DataContract.MARKERS_URI, marker);
 		try
 		{
-			Cursor cursor = client.query(uri, DataContract.ICON_COLUMNS, null, null, null);
+			Cursor cursor = client.query(uri, DataContract.MARKER_COLUMNS, null, null, null);
 			if (cursor.moveToFirst())
 			{
-				byte[] bytes = cursor.getBlob(DataContract.ICON_COLUMN);
+				byte[] bytes = cursor.getBlob(DataContract.MARKER_COLUMN);
 				if (bytes != null)
 					bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
 			}

@@ -1,3 +1,23 @@
+/*
+ * Androzic - android navigation client that uses OziExplorer maps (ozf2, ozfx3).
+ * Copyright (C) 2010-2015 Andrey Novikov <http://andreynovikov.info/>
+ *
+ * This file is part of Androzic application.
+ *
+ * Androzic is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Androzic is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Androzic. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.androzic.plugin.tracker;
 
 import android.annotation.SuppressLint;
@@ -28,7 +48,7 @@ public class TrackerProperties extends Activity
 	private Application application;
 	
 	private TextView name;
-	private String iconValue;
+	private String markerValue;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState)
@@ -52,17 +72,17 @@ public class TrackerProperties extends Activity
 		name = (TextView) findViewById(R.id.name_text);
 		name.setText(tracker.name);
 
-		iconValue = tracker.image;
-		setIcon(tracker.image);
+		markerValue = tracker.marker;
+		setMarker(tracker.marker);
 		
-		ImageButton icon = (ImageButton) findViewById(R.id.icon_button);
-		icon.setOnClickListener(iconOnClickListener);
+		ImageButton marker = (ImageButton) findViewById(R.id.marker_button);
+		marker.setOnClickListener(markerOnClickListener);
 		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB)
 		{
-			registerForContextMenu(icon);
+			registerForContextMenu(marker);
 		}
 
-		findViewById(R.id.done_button).setOnClickListener(doneOnClickListener);
+		findViewById(R.id.save_button).setOnClickListener(doneOnClickListener);
 		findViewById(R.id.cancel_button).setOnClickListener(new OnClickListener() {
 			public void onClick(View v)
 			{
@@ -82,15 +102,15 @@ public class TrackerProperties extends Activity
 	protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState)
 	{
 		super.onRestoreInstanceState(savedInstanceState);
-		iconValue = savedInstanceState.getString("icon");
-		setIcon(iconValue);
+		markerValue = savedInstanceState.getString("marker");
+		setMarker(markerValue);
 	}
 
 	@Override
 	protected void onSaveInstanceState(@NonNull Bundle outState)
 	{
 		super.onSaveInstanceState(outState);
-		outState.putString("icon", iconValue);
+		outState.putString("marker", markerValue);
 	}
 
 	@Override
@@ -99,8 +119,8 @@ public class TrackerProperties extends Activity
 		super.onActivityResult(requestCode, resultCode, data);
 		if (requestCode == 0 && resultCode == Activity.RESULT_OK)
 		{
-			iconValue = data.getStringExtra("icon");
-			setIcon(iconValue);
+			markerValue = data.getStringExtra("marker");
+			setMarker(markerValue);
 		}
 	}
 
@@ -117,21 +137,22 @@ public class TrackerProperties extends Activity
 		switch (item.getItemId())
 		{
 			case R.id.change:
-				startActivityForResult(new Intent(DataContract.ACTION_PICK_ICON), 0);
+				startActivityForResult(new Intent(DataContract.ACTION_PICK_MARKER), 0);
 				break;
 			case R.id.remove:
-				iconValue = null;
-				ImageButton icon = (ImageButton) findViewById(R.id.icon_button);
-				icon.setImageDrawable(this.getResources().getDrawable(R.drawable.ic_highlight_remove_white_24dp));
+				markerValue = null;
+				ImageButton marker = (ImageButton) findViewById(R.id.marker_button);
+				marker.setImageDrawable(this.getResources().getDrawable(R.drawable.ic_highlight_remove_white_24dp));
 				break;
 		}
 		return true;
 	}
 
-	private OnClickListener iconOnClickListener = new OnClickListener() {
+	private OnClickListener markerOnClickListener = new OnClickListener() {
 		@SuppressLint("NewApi")
 		public void onClick(View v)
 		{
+			// PopupMenu from compat library does not work with Dialog theme
 			if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB)
 			{
 				v.showContextMenu();
@@ -157,7 +178,7 @@ public class TrackerProperties extends Activity
 			tracker.name = name.getText().toString();
 			if ("".equals(tracker.name))
 				tracker.name = tracker.sender;
-			tracker.image = iconValue == null ? "" : iconValue;
+			tracker.marker = markerValue == null ? "__remove__" : markerValue;
 			dataAccess.updateTracker(tracker);
 			try
 			{
@@ -173,13 +194,13 @@ public class TrackerProperties extends Activity
 		}
 	};
 	
-	private void setIcon(String icon)
+	private void setMarker(String marker)
 	{
-		ImageButton iconButton = (ImageButton) findViewById(R.id.icon_button);
-		Bitmap b = application.getIcon(icon);
+		ImageButton markerButton = (ImageButton) findViewById(R.id.marker_button);
+		Bitmap b = application.getMarker(marker);
 		if (b != null)
-			iconButton.setImageBitmap(b);
+			markerButton.setImageBitmap(b);
 		else
-			iconButton.setImageDrawable(this.getResources().getDrawable(R.drawable.ic_highlight_remove_white_24dp));
+			markerButton.setImageDrawable(this.getResources().getDrawable(R.drawable.ic_highlight_remove_white_24dp));
 	}
 }
