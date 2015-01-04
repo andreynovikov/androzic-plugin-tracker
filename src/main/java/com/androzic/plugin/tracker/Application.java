@@ -290,10 +290,12 @@ public class Application extends BaseApplication
 		try
 		{
 			Cursor cursor = client.query(uri, DataContract.ICON_COLUMNS, null, null, null);
-			cursor.moveToFirst();
-			byte[] bytes = cursor.getBlob(DataContract.ICON_COLUMN);
-			if (bytes != null)
-				bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+			if (cursor.moveToFirst())
+			{
+				byte[] bytes = cursor.getBlob(DataContract.ICON_COLUMN);
+				if (bytes != null)
+					bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+			}
 		}
 		catch (RemoteException e)
 		{
