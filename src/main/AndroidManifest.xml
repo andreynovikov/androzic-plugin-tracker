@@ -33,7 +33,7 @@
         <activity
             android:name=".TrackerProperties"
             android:label="@string/properties_name"
-            android:theme="@style/BlackDialog" />
+            android:theme="@style/Dialog" />
 
         <receiver android:name=".Executor" >
             <intent-filter>
