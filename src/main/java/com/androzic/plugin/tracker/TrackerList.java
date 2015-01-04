@@ -271,7 +271,7 @@ public class TrackerList extends ActionBarActivity implements AdapterView.OnItem
 				Drawable drawable = new BitmapDrawable(getResources(), b);
 				drawable.setBounds(0, 0, b.getWidth(), b.getHeight());
 				t.setCompoundDrawables(drawable, null, null, null);
-				t.setCompoundDrawablePadding(b.getWidth() / 5);
+				t.setCompoundDrawablePadding(b.getWidth() / 3);
 			}
 			t = (TextView) view.findViewById(R.id.sender);
 			t.setText(tracker.sender);
@@ -303,7 +303,10 @@ public class TrackerList extends ActionBarActivity implements AdapterView.OnItem
 			if (tracker.battery >= 0 && tracker.battery <= 100)
 				battery = String.valueOf(tracker.battery) + "%";
 			t = (TextView) view.findViewById(R.id.battery);
-			t.setText(String.format("%s: %s", getString(R.string.battery), battery));
+			if (! "".equals(battery))
+				t.setText(String.format("%s: %s", getString(R.string.battery), battery));
+			else
+				t.setText("");
 			String signal = "";
 			if (tracker.signal == Integer.MAX_VALUE)
 				signal = getString(R.string.full);
@@ -312,7 +315,10 @@ public class TrackerList extends ActionBarActivity implements AdapterView.OnItem
 			if (tracker.signal >= 0 && tracker.signal <= 100)
 				signal = String.valueOf(tracker.signal) + "%";
 			t = (TextView) view.findViewById(R.id.signal);
-			t.setText(String.format("%s: %s", getString(R.string.signal), signal));
+			if (! "".equals(signal))
+				t.setText(String.format("%s: %s", getString(R.string.signal), signal));
+			else
+				t.setText("");
 			Calendar calendar = Calendar.getInstance();
 			calendar.setTimeInMillis(tracker.time);
 			Date date = calendar.getTime();

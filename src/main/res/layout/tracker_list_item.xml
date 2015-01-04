@@ -17,6 +17,7 @@
             android:layout_alignParentTop="true"
             android:ellipsize="marquee"
             android:singleLine="true"
+            android:gravity="center_vertical"
             android:textAppearance="?android:attr/textAppearanceLarge" />
 
         <TextView
