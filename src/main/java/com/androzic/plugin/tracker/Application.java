@@ -20,6 +20,7 @@
 
 package com.androzic.plugin.tracker;
 
+import java.io.File;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashSet;
@@ -314,9 +315,9 @@ public class Application extends BaseApplication
 	}
 
 	@Override
-	public String getRootPath()
+	public File getCacheDir()
 	{
-		throw new java.lang.RuntimeException("getRootPath() not implemented");
+		throw new java.lang.RuntimeException("getCacheDir() not implemented");
 	}
 
 	@Override
