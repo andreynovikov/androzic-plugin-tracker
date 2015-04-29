@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 21
-    buildToolsVersion "21.1.2"
+    buildToolsVersion "22.0.1"
 
     defaultConfig {
         applicationId "com.androzic.plugin.tracker"
@@ -33,5 +33,5 @@ dependencies {
     compile project(':library')
     compile project(':libraries:android-support-v4-preferencefragment')
     compile project(':libraries:color-picker-view:library')
-    compile 'com.android.support:appcompat-v7:21.0.3'
+    compile 'com.android.support:appcompat-v7:22.1.1'
 }

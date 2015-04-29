@@ -40,7 +40,7 @@ import android.location.Location;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
-import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.internal.view.SupportMenuInflater;
 import android.support.v7.internal.view.menu.MenuBuilder;
 import android.support.v7.internal.view.menu.MenuPopupHelper;
@@ -68,7 +68,7 @@ import com.androzic.provider.PreferencesContract;
 import com.androzic.util.Geo;
 import com.androzic.util.StringFormatter;
 
-public class TrackerList extends ActionBarActivity implements AdapterView.OnItemClickListener, MenuBuilder.Callback, MenuPresenter.Callback
+public class TrackerList extends AppCompatActivity implements AdapterView.OnItemClickListener, MenuBuilder.Callback, MenuPresenter.Callback
 {
 	private static final String TAG = "TrackerList";
 	private TrackerDataAccess dataAccess;
